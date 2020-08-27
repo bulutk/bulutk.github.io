@@ -1,7 +1,7 @@
 {
   "settings": {
     "name": "Bulut Karakaya",
-    "currentPage": "page1.html",
+    "currentPage": "index.html",
     "theme": {
       "name": "mobirise5",
       "title": "Mobirise 5",
@@ -69,7 +69,7 @@
         "file": "@PROJECT_PATH@/fonts/Kiona-Regular/font.ttf"
       }
     ],
-    "uniqCompNum": 53,
+    "uniqCompNum": 58,
     "versionPublish": "5.0.29",
     "imageResize": true,
     "screenshot": "screenshot.png",
@@ -93,7 +93,7 @@
       "settings": {
         "main": true,
         "title": "Bulut Karakaya",
-        "meta_descr": "Bulut Karakaya Personal Webpage",
+        "meta_descr": "Software Engineer / Game Design / Machine Learning",
         "header_custom": "",
         "footer_custom": "",
         "html_before": "",
@@ -838,7 +838,7 @@
     "page1.html": {
       "settings": {
         "title": "Projects",
-        "order": 1
+        "order": 2
       },
       "components": [
         {
