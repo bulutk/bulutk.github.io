@@ -69,7 +69,7 @@
         "file": "@PROJECT_PATH@/fonts/Kiona-Regular/font.ttf"
       }
     ],
-    "uniqCompNum": 49,
+    "uniqCompNum": 52,
     "versionPublish": "5.0.29",
     "imageResize": true,
     "screenshot": "screenshot.png",
@@ -79,7 +79,7 @@
     "sitemapSwitcherAuto": "on",
     "siteUrl": "http://www.bulutk.com",
     "google-analytics": "<!-- Global site tag (gtag.js) - Google Analytics -->\n<script async src=\"https://www.googletagmanager.com/gtag/js?id=UA-15606782-1\"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n\n  gtag('config', 'UA-15606782-1');\n</script>",
-    "robotsText": "User-agent: *\nDisallow: /cgi-bin\n",
+    "robotsText": "User-agent: *\nDisallow: /cgi-bin\n\n",
     "gdpr": {
       "colorText": "#a7a7a7",
       "colorLink": "#149dcc",
@@ -97,7 +97,7 @@
         "header_custom": "",
         "footer_custom": "",
         "html_before": "",
-        "meta_image": "@PROJECT_PATH@/assets/images/bubu+photo-400x533.jpeg"
+        "meta_image": "@PROJECT_PATH@/assets/images/bubuphoto-400x533.jpeg"
       },
       "components": [
         {
