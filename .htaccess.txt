@@ -14,8 +14,3 @@ ExpiresByType image/x-icon "access 1 year"
 ExpiresDefault "access 2 days"
 </IfModule>
 ## EXPIRES CACHING ##
-
-<Files ./project.mobirise>
-	Order Allow,Deny
-	Deny from all
-</Files>
