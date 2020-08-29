@@ -1,7 +1,7 @@
 {
   "settings": {
     "name": "Bulut Karakaya",
-    "currentPage": "index.html",
+    "currentPage": "Projects.html",
     "theme": {
       "name": "mobirise5",
       "title": "Mobirise 5",
@@ -837,10 +837,10 @@
     },
     "Projects.html": {
       "settings": {
-        "title": "Projects",
+        "title": "Bulut Karakaya - Projects",
         "order": 2,
         "meta_image": "@PROJECT_PATH@/assets/images/overfall-631x421.jpg",
-        "meta_descr": "Bulut Karakaya - Projects"
+        "meta_descr": "Software Engineer / Game Design / Machine Learning"
       },
       "components": [
         {
