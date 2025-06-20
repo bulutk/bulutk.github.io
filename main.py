@@ -8,7 +8,7 @@ from google.appengine.ext.webapp import template
 
 class MainHandler(webapp.RequestHandler):
   def get (self, q):
-    if q is None:
+    if not q:
       q = 'index.html'
 
     path = os.path.join (os.path.dirname (__file__), q)
