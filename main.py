@@ -1,5 +1,4 @@
-# Copyright 2012 Digital Inspiration
-# http://www.labnol.org/
+# Serves static pages for bulutk.com using a simple WSGI handler.
 
 import os
 from google.appengine.ext import webapp
