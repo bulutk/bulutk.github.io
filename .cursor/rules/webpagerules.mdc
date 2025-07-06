@@ -1,0 +1,179 @@
+---
+alwaysApply: true
+---
+# Cursor Rules for Bulut Karakaya Portfolio Website
+
+## 🖼️ IMAGE OPTIMIZATION STANDARDS
+
+### Triple Fallback Implementation (MANDATORY)
+All images MUST use the triple fallback approach for maximum performance and compatibility:
+
+```html
+<picture>
+  <source srcset="path/to/image.avif" type="image/avif">
+  <source srcset="path/to/image.webp" type="image/webp">
+  <img src="path/to/image.jpg" alt="descriptive text" loading="lazy">
+</picture>
+```
+
+### Image Format Priority
+1. **AVIF** - Primary format (best compression, 70-80% smaller than JPEG)
+2. **WebP** - Secondary format (excellent browser support, 40-60% smaller than JPEG)
+3. **JPEG/PNG** - Fallback format (universal compatibility)
+
+### Image Conversion Standards
+- **AVIF Quality**: Use `-q 51` (equivalent to medium quality)
+- **WebP Quality**: Use `-q 85` (high quality with good compression)
+- **Speed Setting**: Use `--speed 4` for AVIF (balance of speed vs compression)
+
+### Conversion Commands
+```bash
+# Convert to WebP
+cwebp -q 85 "input.jpg" -o "output.webp"
+
+# Convert to AVIF
+avifenc -q 51 --speed 4 "input.jpg" "output.avif"
+```
+
+### Loading Optimization
+- **ALWAYS** use `loading="lazy"` on images except above-the-fold content
+- **NEVER** lazy load images visible on initial page load
+- Use appropriate `alt` attributes for accessibility
+
+### CSS Background Images
+Since CSS doesn't support `<picture>` elements, use cascading fallbacks:
+
+```css
+.element {
+  background-image: url("image.jpg");      /* Fallback */
+  background-image: url("image.webp");    /* Better compression */
+  background-image: url("image.avif");    /* Best compression */
+}
+```
+
+## 📐 RESPONSIVE IMAGE GUIDELINES
+
+### Meta Tags
+Update meta tags to use AVIF format for best performance:
+```html
+<meta name="twitter:image:src" content="assets/images/image.avif">
+<meta property="og:image" content="assets/images/image.avif">
+```
+
+### Favicon
+Use AVIF format for favicon when possible:
+```html
+<link rel="shortcut icon" href="assets/images/favicon.avif" type="image/avif">
+```
+
+## 🚀 PERFORMANCE OPTIMIZATION RULES
+
+### File Size Targets
+- **Hero images**: Target <50KB for AVIF, <100KB for WebP
+- **Thumbnail images**: Target <20KB for AVIF, <40KB for WebP
+- **Background images**: Target <300KB for AVIF, <500KB for WebP
+
+### Expected Compression Ratios
+- **AVIF**: 70-80% reduction from original JPEG
+- **WebP**: 40-60% reduction from original JPEG
+- **Combined**: Up to 85% total bandwidth savings
+
+### Browser Support Considerations
+- **AVIF**: ~73% browser support (Chrome 85+, Firefox 93+, Safari 16.1+)
+- **WebP**: ~95% browser support (universal modern browsers)
+- **JPEG/PNG**: 100% universal fallback
+
+## 📁 FILE ORGANIZATION
+
+### Image Directory Structure
+```
+assets/images/
+├── image-name.avif    (Primary format)
+├── image-name.webp    (Secondary format)
+├── image-name.jpg     (Fallback format)
+└── hashes.json        (Optional: for cache busting)
+```
+
+### Naming Conventions
+- Use descriptive, kebab-case names
+- Maintain consistent extensions (.avif, .webp, .jpg/.jpeg/.png)
+- Keep original format for maximum compatibility
+
+## 🔧 IMPLEMENTATION CHECKLIST
+
+When adding new images:
+- [ ] Convert to all three formats (AVIF, WebP, Original)
+- [ ] Implement triple fallback `<picture>` element
+- [ ] Add `loading="lazy"` unless above-the-fold
+- [ ] Use descriptive `alt` attributes
+- [ ] Test in multiple browsers
+- [ ] Verify file sizes meet targets
+
+When updating existing images:
+- [ ] Replace single format with triple fallback
+- [ ] Update meta tags to use AVIF
+- [ ] Update CSS background images with cascading fallbacks
+- [ ] Verify no broken image references
+
+## 🔍 TESTING & VERIFICATION
+
+### Performance Testing
+- Use Lighthouse to verify improvements
+- Check Core Web Vitals (LCP, CLS, FID)
+- Test on slow connections (3G simulation)
+- Verify cumulative layout shift is minimal
+
+### Browser Testing
+- Test AVIF support in modern browsers
+- Verify WebP fallback works
+- Ensure JPEG/PNG fallback functions
+- Check mobile device compatibility
+
+### File Size Verification
+```bash
+# Check compression ratios
+for format in avif webp jpg jpeg png; do
+  find . -name "*.$format" -exec stat -f"%z %N" {} \;
+done | sort -n
+```
+
+## 📊 CURRENT PERFORMANCE ACHIEVEMENTS
+
+### Compression Results (Examples)
+- **MV3**: 96KB → 30KB (WebP) → 19KB (AVIF) = 80% total reduction
+- **desta-847x847**: 89KB → 39KB (WebP) → 16KB (AVIF) = 82% total reduction
+- **maxresdefault**: 100KB → 57KB (WebP) → 26KB (AVIF) = 74% total reduction
+
+### Performance Gains
+- **Estimated load time improvement**: 310ms (per Cloudflare recommendation)
+- **Bandwidth reduction**: 50-80% across all images
+- **Core Web Vitals**: Improved LCP (Largest Contentful Paint)
+
+## 🚫 NEVER DO
+
+- Don't use single-format images for new implementations
+- Don't forget `loading="lazy"` on below-the-fold images
+- Don't use AVIF-only without fallbacks
+- Don't compress images below quality thresholds
+- Don't ignore alt attributes for accessibility
+- Don't lazy load above-the-fold content
+
+## 🔄 MAINTENANCE
+
+### Regular Tasks
+- Monitor browser support statistics quarterly
+- Update compression tools to latest versions
+- Review and optimize new images on upload
+- Test performance on various devices/connections
+
+### Future Considerations
+- Consider JPEG XL when browser support improves
+- Evaluate new compression formats as they emerge
+- Monitor Core Web Vitals regularly
+- Update fallback strategies based on browser adoption
+
+---
+
+**Last Updated**: January 2025
+**Performance Standard**: Lighthouse score 90+
+**Compatibility Target**: 95%+ browser support with fallbacks 
