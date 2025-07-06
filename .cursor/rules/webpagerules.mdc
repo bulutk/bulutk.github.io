@@ -53,6 +53,63 @@ Since CSS doesn't support `<picture>` elements, use cascading fallbacks:
 
 ## 📐 RESPONSIVE IMAGE GUIDELINES
 
+### Device-Specific Aspect Ratios (CRITICAL)
+Different devices require different aspect ratios to prevent squashing and provide optimal composition:
+
+**Desktop (>1000px)**: Maintain original aspect ratio (e.g., 1.93:1 for landscapes)
+**Tablet (601px-1000px)**: Use 4:3 ratio (1.33:1) - classic tablet proportions
+**Mobile (≤600px)**: Use 1:1 ratio (square) - prevents extreme cropping on portrait screens
+
+### Smart Cropping Strategy
+**ALWAYS crop, NEVER resize/stretch** to achieve target aspect ratios:
+
+```bash
+# ✅ CORRECT: Crop then resize (maintains proportions)
+sips -c 996 996 original.jpeg --out temp-square.jpeg    # Crop to square
+sips -z 800 800 temp-square.jpeg --out mobile.jpeg      # Resize square to square
+
+# ❌ WRONG: Direct resize (causes squashing)
+sips -z 800 800 original.jpeg --out mobile.jpeg         # Distorts 1.93:1 → 1:1
+```
+
+### Responsive Picture Element
+Implement complete device-specific image sources:
+
+```html
+<picture class="hero-bg">
+  <!-- Mobile: Square 1:1 ratio -->
+  <source media="(max-width: 600px)" srcset="image-mobile.avif" type="image/avif">
+  <source media="(max-width: 600px)" srcset="image-mobile.webp" type="image/webp">
+  <source media="(max-width: 600px)" srcset="image-mobile.jpeg" type="image/jpeg">
+  
+  <!-- Tablet: 4:3 ratio -->
+  <source media="(max-width: 1000px)" srcset="image-tablet.avif" type="image/avif">
+  <source media="(max-width: 1000px)" srcset="image-tablet.webp" type="image/webp">
+  <source media="(max-width: 1000px)" srcset="image-tablet.jpeg" type="image/jpeg">
+  
+  <!-- Desktop: Original ratio -->
+  <source srcset="image.avif" type="image/avif">
+  <source srcset="image.webp" type="image/webp">
+  <img src="image.jpeg" alt="Hero background" width="1200" height="900" 
+       style="width: 100%; height: 100%; object-fit: cover;">
+</picture>
+```
+
+### Hero Background Best Practices
+For hero/banner images that span full viewport:
+
+1. **Create 3 versions** with device-optimized compositions
+2. **Use center cropping** to maintain focal points
+3. **Match HTML dimensions** to target aspect ratio
+4. **Preload critical images** with device-specific media queries:
+
+```html
+<link rel="preload" as="image" href="hero-mobile.avif" 
+      media="(max-width: 600px)" fetchpriority="high">
+<link rel="preload" as="image" href="hero-desktop.avif" 
+      media="(min-width: 601px)" fetchpriority="high">
+```
+
 ### Meta Tags
 Update meta tags to use AVIF format for best performance:
 ```html
@@ -86,12 +143,19 @@ Use AVIF format for favicon when possible:
 ## 📁 FILE ORGANIZATION
 
 ### Image Directory Structure
+For responsive images with device-specific versions:
 ```
 assets/images/
-├── image-name.avif    (Primary format)
-├── image-name.webp    (Secondary format)
-├── image-name.jpg     (Fallback format)
-└── hashes.json        (Optional: for cache busting)
+├── image-name.avif           (Desktop: Original ratio)
+├── image-name.webp           (Desktop: Original ratio)
+├── image-name.jpeg           (Desktop: Original ratio)
+├── image-name-tablet.avif    (Tablet: 4:3 ratio)
+├── image-name-tablet.webp    (Tablet: 4:3 ratio)
+├── image-name-tablet.jpeg    (Tablet: 4:3 ratio)
+├── image-name-mobile.avif    (Mobile: 1:1 ratio)
+├── image-name-mobile.webp    (Mobile: 1:1 ratio)
+├── image-name-mobile.jpeg    (Mobile: 1:1 ratio)
+└── hashes.json               (Optional: for cache busting)
 ```
 
 ### Naming Conventions
@@ -101,19 +165,23 @@ assets/images/
 
 ## 🔧 IMPLEMENTATION CHECKLIST
 
-When adding new images:
-- [ ] Convert to all three formats (AVIF, WebP, Original)
-- [ ] Implement triple fallback `<picture>` element
-- [ ] Add `loading="lazy"` unless above-the-fold
-- [ ] Use descriptive `alt` attributes
-- [ ] Test in multiple browsers
-- [ ] Verify file sizes meet targets
+When adding new responsive images:
+- [ ] **Create device versions**: Generate mobile (1:1), tablet (4:3), desktop (original) crops
+- [ ] **Smart cropping**: Use center crop, never stretch/resize to different ratios  
+- [ ] **Convert all formats**: Create AVIF, WebP, JPEG for each device version (9 files total)
+- [ ] **Implement responsive picture**: Complete `<picture>` element with device breakpoints
+- [ ] **Preload critical images**: Add device-specific preload tags for above-the-fold content
+- [ ] **Update HTML dimensions**: Match `width`/`height` attributes to target device aspect ratio
+- [ ] **Add proper alt text**: Descriptive `alt` attributes for accessibility
+- [ ] **Test all breakpoints**: Verify each device version displays correctly
+- [ ] **Verify file sizes**: Ensure each version meets performance targets
 
 When updating existing images:
-- [ ] Replace single format with triple fallback
-- [ ] Update meta tags to use AVIF
-- [ ] Update CSS background images with cascading fallbacks
-- [ ] Verify no broken image references
+- [ ] **Audit current implementation**: Check for squashing/distortion issues
+- [ ] **Replace single format**: Upgrade to device-specific triple fallback approach
+- [ ] **Update meta tags**: Use AVIF format for social sharing images
+- [ ] **Update CSS backgrounds**: Add cascading fallbacks for CSS background images  
+- [ ] **Verify no broken references**: Test all image sources across devices
 
 ## 🔍 TESTING & VERIFICATION
 
@@ -144,19 +212,30 @@ done | sort -n
 - **desta-847x847**: 89KB → 39KB (WebP) → 16KB (AVIF) = 82% total reduction
 - **maxresdefault**: 100KB → 57KB (WebP) → 26KB (AVIF) = 74% total reduction
 
+### Device-Specific Hero Background Optimization (website-bcg3-2)
+**Desktop (1920×996)**: 718KB → 551KB (WebP) → 329KB (AVIF) = 54% reduction
+**Tablet (1200×900)**: 419KB → 308KB (WebP) → 181KB (AVIF) = 57% reduction  
+**Mobile (800×800)**: 256KB → 189KB (WebP) → 114KB (AVIF) = 55% reduction
+
 ### Performance Gains
 - **Estimated load time improvement**: 310ms (per Cloudflare recommendation)
 - **Bandwidth reduction**: 50-80% across all images
+- **Eliminated image distortion**: Smart cropping prevents squashing on mobile/tablet
+- **Device-optimized compositions**: Each breakpoint shows optimal image portion
 - **Core Web Vitals**: Improved LCP (Largest Contentful Paint)
 
 ## 🚫 NEVER DO
 
+- **Don't resize/stretch images** to achieve different aspect ratios (causes squashing)
+- **Don't use single aspect ratio** for all devices (poor mobile experience)
+- **Don't mismatch HTML dimensions** with actual image aspect ratios
 - Don't use single-format images for new implementations
-- Don't forget `loading="lazy"` on below-the-fold images
+- Don't forget `loading="lazy"` on below-the-fold images  
 - Don't use AVIF-only without fallbacks
 - Don't compress images below quality thresholds
 - Don't ignore alt attributes for accessibility
 - Don't lazy load above-the-fold content
+- **Don't skip device testing** - verify images display correctly on all breakpoints
 
 ## 🔄 MAINTENANCE
 
@@ -174,6 +253,7 @@ done | sort -n
 
 ---
 
-**Last Updated**: January 2025
+**Last Updated**: January 2025 (Added device-specific cropping optimization)
 **Performance Standard**: Lighthouse score 90+
-**Compatibility Target**: 95%+ browser support with fallbacks 
+**Compatibility Target**: 95%+ browser support with fallbacks
+**Responsive Strategy**: Multi-device aspect ratios with smart cropping (no squashing)
