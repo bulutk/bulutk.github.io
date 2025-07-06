@@ -13,39 +13,111 @@
   <link rel="shortcut icon" href="assets/images/icons8-blockchain-technology-90-90x90.avif" type="image/avif">
   <meta name="description" content="Software Engineer / Game Design / Machine Learning">
   
+  <!-- Preload critical resources - Safari compatible -->
+  <link rel="preload" as="image" href="assets/images/website-bcg3-2-mobile.avif" 
+        media="(max-width: 600px)" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/images/website-bcg3-2.avif" 
+        media="(min-width: 601px)" fetchpriority="high">
+  <link rel="preload" href="assets/fonts/style.css" as="style">
+  <link rel="preload" href="assets/theme/css/style.css" as="style">
   
   <title>Bulut Karakaya</title>
-  <link rel="stylesheet" href="assets/web/assets/mobirise-icons2/mobirise2.css">
-  <link rel="stylesheet" href="assets/tether/tether.min.css">
-  <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
-  <link rel="stylesheet" href="assets/bootstrap/css/bootstrap-grid.min.css">
-  <link rel="stylesheet" href="assets/bootstrap/css/bootstrap-reboot.min.css">
-  <link rel="stylesheet" href="assets/web/assets/gdpr-plugin/gdpr-styles.css">
-  <link rel="stylesheet" href="assets/dropdown/css/style.css">
-  <link rel="stylesheet" href="assets/socicon/css/styles.css">
-  <link rel="stylesheet" href="assets/theme/css/style.css">
+  
+     <!-- Critical CSS - Inline the most important styles -->
+   <style>
+     /* Critical hero styles - Override external CSS for performance */
+     .cid-s8NZqvT8v7 {
+       display: flex;
+       align-items: flex-end;
+       min-height: 100vh;
+       position: relative;
+       background-color: #1a1a1a;
+     }
+     .hero-bg {
+       position: absolute;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       z-index: -1;
+     }
+     .hero-bg img {
+       width: 100%;
+       height: 100%;
+       object-fit: cover;
+     }
+    .cid-s8NZqvT8v7 .mbr-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #353535;
+      opacity: 0 !important;
+      z-index: 1;
+    }
+    .content-wrap {
+      position: relative;
+      z-index: 2;
+      padding: 5rem 1rem;
+      width: 51%;
+    }
+    .display-1 {
+      font-size: 4.5rem;
+      line-height: 1;
+      color: #ffffff;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+    .display-7 {
+      font-size: 1.4rem;
+      line-height: 1.4;
+      color: #ffffff;
+      margin-bottom: 2rem;
+    }
+    /* Navigation critical styles */
+    .navbar {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      background: rgba(0,0,0,0.9);
+      padding: 1rem 0;
+    }
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+  </style>
+  
+  <!-- Load non-critical CSS asynchronously -->
+  <link rel="preload" href="assets/web/assets/mobirise-icons2/mobirise2.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/tether/tether.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/bootstrap/css/bootstrap.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/bootstrap/css/bootstrap-grid.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/bootstrap/css/bootstrap-reboot.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/web/assets/gdpr-plugin/gdpr-styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/dropdown/css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/socicon/css/styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <link rel="preload" href="assets/theme/css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
   <link href="assets/fonts/style.css" rel="stylesheet">
   <link rel="preload" as="style" href="assets/mobirise/css/mbr-additional.css"><link rel="stylesheet" href="assets/mobirise/css/mbr-additional.css" type="text/css">
   
-  
-  
-  
+  <!-- Fallback for browsers that don't support preload -->
+  <noscript>
+    <link rel="stylesheet" href="assets/web/assets/mobirise-icons2/mobirise2.css">
+    <link rel="stylesheet" href="assets/tether/tether.min.css">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap-grid.min.css">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap-reboot.min.css">
+    <link rel="stylesheet" href="assets/web/assets/gdpr-plugin/gdpr-styles.css">
+    <link rel="stylesheet" href="assets/dropdown/css/style.css">
+    <link rel="stylesheet" href="assets/socicon/css/styles.css">
+    <link rel="stylesheet" href="assets/theme/css/style.css">
+  </noscript>
 </head>
 <body>
-
-<!-- Analytics -->
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-15606782-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-15606782-1');
-</script>
-<!-- /Analytics -->
-
-
   
   <section data-bs-version="5.1" class="menu cid-s48OLK6784" once="menu" id="menu1-h">
     
@@ -76,8 +148,37 @@
 </section>
 
 <section class="engine"><a href="https://mobirise.info/a">online website builder</a></section><section data-bs-version="5.1" class="header4 cid-s8NZqvT8v7 mbr-fullscreen mbr-parallax-background" id="header4-k">
-
+    <!-- Safari-compatible responsive image with simpler fallback -->
+    <picture class="hero-bg">
+        <source media="(max-width: 600px)" 
+                srcset="assets/images/website-bcg3-2-mobile.avif"
+                type="image/avif">
+        <source media="(max-width: 600px)" 
+                srcset="assets/images/website-bcg3-2-mobile.webp"
+                type="image/webp">
+        <source media="(max-width: 600px)" 
+                srcset="assets/images/website-bcg3-2-mobile.jpeg"
+                type="image/jpeg">
+        <source media="(max-width: 1000px)" 
+                srcset="assets/images/website-bcg3-2-tablet.avif"
+                type="image/avif">
+        <source media="(max-width: 1000px)" 
+                srcset="assets/images/website-bcg3-2-tablet.webp"
+                type="image/webp">
+        <source media="(max-width: 1000px)" 
+                srcset="assets/images/website-bcg3-2-tablet.jpeg"
+                type="image/jpeg">
+        <source srcset="assets/images/website-bcg3-2.avif" type="image/avif">
+        <source srcset="assets/images/website-bcg3-2.webp" type="image/webp">
+        <img src="assets/images/website-bcg3-2.jpeg" 
+             alt="Hero background" 
+             fetchpriority="high"
+             width="1200"
+             height="900"
+             style="width: 100%; height: 100%; object-fit: cover;">
+    </picture>
     
+    <div class="mbr-overlay"></div>
     
     <div class="container">
         <div class="row">
@@ -110,7 +211,7 @@
                             <picture>
                                 <source srcset="assets/images/MV3.avif" type="image/avif">
                                 <source srcset="assets/images/MV3.webp" type="image/webp">
-                                <img src="assets/images/MV3.jpeg" alt="" loading="lazy" data-slide-to="0" data-bs-slide-to="0">
+                                <img src="assets/images/MV3.jpeg" alt="Monument Valley 3" width="300" height="300" loading="lazy" data-slide-to="0" data-bs-slide-to="0">
                             </picture>
                         </a>
                     </div>
@@ -124,7 +225,7 @@
                             <picture>
                                 <source srcset="assets/images/desta-847x847.avif" type="image/avif">
                                 <source srcset="assets/images/desta-847x847.webp" type="image/webp">
-                                <img src="assets/images/desta-847x847.jpeg" alt="" loading="lazy" data-slide-to="1" data-bs-slide-to="1">
+                                <img src="assets/images/desta-847x847.jpeg" alt="Desta: The Memories Between" width="300" height="300" loading="lazy" data-slide-to="1" data-bs-slide-to="1">
                             </picture>
                         </a>
                     </div>
@@ -139,7 +240,7 @@
                             <picture>
                                 <source srcset="assets/images/maxresdefault-847x476.avif" type="image/avif">
                                 <source srcset="assets/images/maxresdefault-847x476.webp" type="image/webp">
-                                <img src="assets/images/maxresdefault-847x476.jpeg" alt="" loading="lazy" data-slide-to="2" data-bs-slide-to="2">
+                                <img src="assets/images/maxresdefault-847x476.jpeg" alt="Game Project" width="300" height="169" loading="lazy" data-slide-to="2" data-bs-slide-to="2">
                             </picture>
                         </a>
                     </div>
@@ -153,7 +254,7 @@
                             <picture>
                                 <source srcset="assets/images/capsule-616x353-616x353.avif" type="image/avif">
                                 <source srcset="assets/images/capsule-616x353-616x353.webp" type="image/webp">
-                                <img src="assets/images/capsule-616x353-616x353.jpg" data-slide-to="3" data-bs-slide-to="3" alt="" loading="lazy">
+                                <img src="assets/images/capsule-616x353-616x353.jpg" data-slide-to="3" data-bs-slide-to="3" alt="Game Project" width="300" height="172" loading="lazy">
                             </picture>
                         </a>
                     </div>
@@ -206,7 +307,7 @@
                             <picture>
                                 <source srcset="assets/images/bubuphoto-400x533.avif" type="image/avif">
                                 <source srcset="assets/images/bubuphoto-400x533.webp" type="image/webp">
-                                <img src="assets/images/bubuphoto-400x533.jpeg" alt="" loading="lazy">
+                                <img src="assets/images/bubuphoto-400x533.jpeg" alt="Bulut Karakaya" width="200" height="267" loading="lazy">
                             </picture>
                         </div>
                         <div class="user_text mb-4">
@@ -293,5 +394,42 @@
   
   
 <input name="cookieData" type="hidden" data-cookie-customDialogSelector='null' data-cookie-colorText='#424a4d' data-cookie-colorBg='rgba(234, 239, 241, 0.99)' data-cookie-textButton='Agree' data-cookie-colorButton='' data-cookie-colorLink='#424a4d' data-cookie-underlineLink='true' data-cookie-text="We use cookies to give you the best experience. Read our <a href='privacy.html'>cookie policy</a>.">
+
+<!-- Safari Image Fallback Script -->
+<script>
+  // Ensure hero image loads properly in Safari
+  document.addEventListener('DOMContentLoaded', function() {
+    const heroImg = document.querySelector('.hero-bg img');
+    const heroSection = document.querySelector('.cid-s8NZqvT8v7');
+    
+    if (heroImg && heroSection) {
+      // Add error handling for image loading
+      heroImg.onerror = function() {
+        console.log('Hero image failed to load, using CSS fallback');
+        heroSection.style.backgroundImage = "url('assets/images/website-bcg3-2.webp')";
+        heroSection.style.backgroundSize = "cover";
+        heroSection.style.backgroundPosition = "center";
+        heroImg.style.display = 'none';
+      };
+      
+      // Check if image loaded successfully after a short delay
+      setTimeout(function() {
+        if (heroImg.naturalWidth === 0) {
+          heroImg.onerror();
+        }
+      }, 1000);
+    }
+  });
+</script>
+
+<!-- Analytics - Moved to end for better performance -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-15606782-1');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-15606782-1"></script>
+
   </body>
 </html>
