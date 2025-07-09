@@ -286,6 +286,312 @@
     </div>
 </section>
 
+<section data-bs-version="5.1" class="content5 cid-awards-honours" id="awards-honours">
+    <style>
+        /* Match the existing dark section background and styling */
+        .cid-awards-honours {
+            background-color: #000000 !important;
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+        .awards-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+            gap: 3rem;
+        }
+        .awards-tab {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            padding: 0;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            position: relative;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+        .awards-tab.active {
+            color: #ffffff;
+        }
+        .awards-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: #6592e6;
+        }
+        .awards-tab:hover {
+            color: #ffffff;
+        }
+        .awards-content {
+            display: none;
+        }
+        .awards-content.active {
+            display: block;
+        }
+        .awards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .award-item {
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 2rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .award-item:hover {
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
+        .award-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: #6592e6;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .award-item:hover::before {
+            opacity: 1;
+        }
+        .award-title {
+            color: #ffffff;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-family: 'Kiona-Regular', sans-serif;
+            line-height: 1.2;
+        }
+        .award-details {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.4;
+        }
+        .award-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .award-year {
+            color: #6592e6;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .award-source {
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .award-source:hover {
+            color: #6592e6;
+            border-bottom-color: #6592e6;
+            text-decoration: none;
+        }
+        @media (max-width: 768px) {
+            .awards-tabs {
+                gap: 2rem;
+                margin-bottom: 2rem;
+            }
+            .awards-tab {
+                font-size: 0.9rem;
+            }
+            .awards-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .award-item {
+                padding: 1.5rem;
+            }
+            .award-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+    
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-12 col-lg-10">
+                <h4 class="mbr-section-title mbr-fonts-style mb-4 display-5 text-center mbr-white">
+                    <strong>Awards & Honours</strong>
+                </h4>
+                
+                <div class="awards-tabs">
+                    <button class="awards-tab active" onclick="showAwardsTab('wins')">🏆 Wins</button>
+                    <button class="awards-tab" onclick="showAwardsTab('nominations')">🎖️ Nominations</button>
+                </div>
+                
+                <div id="wins-content" class="awards-content active">
+                    <div class="awards-grid">
+                        <div class="award-item">
+                            <div class="award-title">Best UK Mobile Game</div>
+                            <div class="award-details">Monument Valley 3</div>
+                            <div class="award-meta">
+                                <div class="award-year">2025</div>
+                                <a href="https://ukie.org.uk/news/stars-shine-at-2025-ukie-video-game-awards" target="_blank" class="award-source">Ukie Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Best Mobile Game</div>
+                            <div class="award-details">Desta: The Memories Between</div>
+                            <div class="award-meta">
+                                <div class="award-year">2023</div>
+                                <a href="https://www.developconference.com/latest-news/developstar-awards-2023-winners-announced" target="_blank" class="award-source">Develop:Star</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Strategy/Simulation Game – People's Voice</div>
+                            <div class="award-details">Star Trek Fleet Command</div>
+                            <div class="award-meta">
+                                <div class="award-year">2019</div>
+                                <a href="https://winners.webbyawards.com/2019/games/features/technical-achievement/89522/star-trek-fleet-command" target="_blank" class="award-source">Webby Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Technical Achievement – People's Voice</div>
+                            <div class="award-details">Star Trek Fleet Command</div>
+                            <div class="award-meta">
+                                <div class="award-year">2019</div>
+                                <a href="https://winners.webbyawards.com/2019/games/features/technical-achievement/89522/star-trek-fleet-command" target="_blank" class="award-source">Webby Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Innovation</div>
+                            <div class="award-details">Egg Fight</div>
+                            <div class="award-meta">
+                                <div class="award-year">2014</div>
+                                <a href="https://www.bilisimdergisi.org.tr/s171/pdf/128-129.pdf" target="_blank" class="award-source">Kristal Piksel</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Jury Special Prize</div>
+                            <div class="award-details">Kixel Soccer</div>
+                            <div class="award-meta">
+                                <div class="award-year">2013</div>
+                                <a href="https://www.bilisimdergisi.org.tr/s160/pdf/114.pdf" target="_blank" class="award-source">Kristal Piksel</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="nominations-content" class="awards-content">
+                    <div class="awards-grid">
+                        <div class="award-item">
+                            <div class="award-title">Original Music Composition</div>
+                            <div class="award-details">Monument Valley 3</div>
+                            <div class="award-meta">
+                                <div class="award-year">2025</div>
+                                <a href="https://www.interactive.org/awards/84Kd_28th_annual_dice_awards_finalists_revealed_8ufL.asp" target="_blank" class="award-source">D.I.C.E. Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Audio Design</div>
+                            <div class="award-details">Monument Valley 3</div>
+                            <div class="award-meta">
+                                <div class="award-year">2025</div>
+                                <a href="https://www.interactive.org/awards/84Kd_28th_annual_dice_awards_finalists_revealed_8ufL.asp" target="_blank" class="award-source">D.I.C.E. Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Mobile Game of the Year</div>
+                            <div class="award-details">Monument Valley 3</div>
+                            <div class="award-meta">
+                                <div class="award-year">2025</div>
+                                <a href="https://www.interactive.org/awards/84Kd_28th_annual_dice_awards_finalists_revealed_8ufL.asp" target="_blank" class="award-source">D.I.C.E. Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Best Music in Casual/Social Game</div>
+                            <div class="award-details">Star Trek Fleet Command</div>
+                            <div class="award-meta">
+                                <div class="award-year">2019</div>
+                                <a href="https://www.audiogang.org/awards-archive-old/2019-awards/" target="_blank" class="award-source">G.A.N.G. Awards</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">Excellence in Convergence</div>
+                            <div class="award-details">Star Trek Fleet Command</div>
+                            <div class="award-meta">
+                                <div class="award-year">2019</div>
+                                <a href="https://www.cgw.com/Press-Center/News/2019/SXSW-Gaming-Announces-Nominees-For-2019-Gaming-A.aspx" target="_blank" class="award-source">SXSW Gaming</a>
+                            </div>
+                        </div>
+                        
+                        <div class="award-item">
+                            <div class="award-title">IGF Competition Entrant</div>
+                            <div class="award-details">Overfall</div>
+                            <div class="award-meta">
+                                <div class="award-year">2016</div>
+                                <a href="https://prod.igf.com/overfall" target="_blank" class="award-source">Independent Games Festival</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+function showAwardsTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.awards-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active class from all tabs
+    document.querySelectorAll('.awards-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected content
+    const targetContent = document.getElementById(tabName + '-content');
+    if (targetContent) {
+        targetContent.classList.add('active');
+    }
+    
+    // Add active class to clicked tab
+    const clickedTab = document.querySelector(`[onclick="showAwardsTab('${tabName}')"]`);
+    if (clickedTab) {
+        clickedTab.classList.add('active');
+    }
+}
+
+// Ensure the wins tab is active on page load
+document.addEventListener('DOMContentLoaded', function() {
+    showAwardsTab('wins');
+});
+</script>
+
 <section data-bs-version="5.1" class="testimonials3 carousel slide testimonials-slider cid-s8ObjxQNA2" data-interval="false" data-bs-interval="false" id="testimonials3-l">
 
     
