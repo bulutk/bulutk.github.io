@@ -2159,3 +2159,11 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 .cid-sMV3nZ4d1w .mbr-text {
   color: #bbbbbb;
 }
+/* Responsive video embeds: preserve 16:9 and prevent squashing */
+.video-wrapper iframe,
+iframe.mbr-embedded-video {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16/9;
+  display: block;
+}
