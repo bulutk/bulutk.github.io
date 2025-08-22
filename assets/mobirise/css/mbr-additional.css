@@ -2167,3 +2167,12 @@ iframe.mbr-embedded-video {
   aspect-ratio: 16/9;
   display: block;
 }
+
+/* Footer social icons: prevent top cropping on some WebKit builds */
+.cid-s48P1Icc8J .social-list a {
+  display: inline-flex;
+  align-items: center;
+}
+.cid-s48P1Icc8J .mbr-iconfont-social {
+  line-height: 1.2; /* allow full glyph ascenders */
+}
