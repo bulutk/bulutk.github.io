@@ -1878,6 +1878,14 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
   color: #bbbbbb;
   text-align: center;
 }
+.cid-s8SzbOrjh5 .mbr-section-title {
+  color: #bbbbbb;
+  text-align: left;
+}
+.cid-s8SzbOrjh5 .mbr-section-subtitle,
+.cid-s8SzbOrjh5 .mbr-text {
+  text-align: left;
+}
 .cid-s8SmzsA3VN {
   padding-top: 1rem;
   padding-bottom: 0rem;
@@ -1904,6 +1912,14 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 }
 .cid-s8SmzsA3VN .mbr-text {
   color: #bbbbbb;
+}
+.cid-s8SmzsA3VN .title-wrapper .mbr-section-subtitle {
+  color: #bbbbbb;
+}
+.cid-s8SmzsA3VN .mbr-section-title,
+.cid-s8SmzsA3VN .mbr-section-subtitle,
+.cid-s8SmzsA3VN .mbr-text {
+  text-align: left;
 }
 .cid-s8Son1IeqO {
   padding-top: 1rem;
@@ -1945,6 +1961,10 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
   color: #bbbbbb;
   text-align: center;
 }
+.cid-s8SpmZBZjn .mbr-section-subtitle,
+.cid-s8SpmZBZjn .mbr-text {
+  text-align: left;
+}
 .cid-s8SragLhvA {
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -1962,11 +1982,11 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 }
 @media (min-width: 992px) {
   .cid-s8SragLhvA .text-wrapper {
-    padding: 2rem;
+    padding: 0 2rem 0 0;
   }
 }
 .cid-s8SragLhvA .mbr-text {
-  color: #fafafa;
+  color: #bbbbbb;
 }
 .cid-s8SragLhvA .mbr-section-subtitle {
   color: #bbbbbb;
@@ -1988,11 +2008,11 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 }
 @media (min-width: 992px) {
   .cid-s8SsgLVGfA .text-wrapper {
-    padding: 2rem;
+    padding: 0 2rem 0 0;
   }
 }
 .cid-s8SsgLVGfA .mbr-text {
-  color: #fafafa;
+  color: #bbbbbb;
 }
 .cid-s8SsgLVGfA .mbr-section-subtitle {
   color: #bbbbbb;
@@ -2014,11 +2034,11 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 }
 @media (min-width: 992px) {
   .cid-s8SsTKCtcm .text-wrapper {
-    padding: 2rem;
+    padding: 0 2rem 0 0;
   }
 }
 .cid-s8SsTKCtcm .mbr-text {
-  color: #fafafa;
+  color: #bbbbbb;
 }
 .cid-s8SsTKCtcm .mbr-section-subtitle {
   color: #bbbbbb;
@@ -2040,11 +2060,11 @@ body section.content5.cid-s8SmpojoyRecentAchievements {
 }
 @media (min-width: 992px) {
   .cid-s8SxXTC0rP .text-wrapper {
-    padding: 2rem;
+    padding: 0 2rem 0 0;
   }
 }
 .cid-s8SxXTC0rP .mbr-text {
-  color: #fafafa;
+  color: #bbbbbb;
 }
 .cid-s8SxXTC0rP .mbr-section-subtitle {
   color: #bbbbbb;
