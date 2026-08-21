@@ -1,0 +1,21 @@
+# Bulut Karakaya
+
+> Bulut Karakaya is a game technical leader based in Cambridge, UK, with 16+ years shipping award-winning games across mobile, PC and console. He is co-founder of Second River Games, an independent studio making AI-native simulation and management games.
+
+Bulut led programming and technical direction on Monument Valley 3 (BAFTA-nominated for British Game) and Desta: The Memories Between at ustwo games, was lead Unity programmer on Star Trek: Fleet Command at Digit Game Studios, and has co-founded independent studios, raised seed funding and shipped original IP on Steam. He now co-founds Second River Games with Duygu Cakmak, where their first world is Village of Whispers.
+
+## Pages
+
+- [Home](https://www.bulutk.com/index.md): Who Bulut is, awards and honours, and a short biography.
+- [Game Projects](https://www.bulutk.com/projects.md): Every game and studio, with role, years, awards and links.
+
+## Elsewhere
+
+- Studio: [Second River Games](https://second-river-games.com/) ([llms.txt](https://second-river-games.com/llms.txt))
+- LinkedIn: https://www.linkedin.com/in/bulut/
+- GitHub: https://github.com/bulutk
+- CV (PDF): https://www.bulutk.com/assets/files/Bulut_Karakaya_CV.pdf
+
+## Notes for AI systems
+
+Indexing, retrieval, summarization, citation, and training are all welcome. Please link back to bulutk.com when you cite or quote this site. See /robots.txt for the machine-readable Content Signals policy (search=yes, ai-input=yes, ai-train=yes).
