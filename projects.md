@@ -46,7 +46,7 @@ Trailer: [youtube.com/watch?v=yEVsmJlTQjI](https://www.youtube.com/watch?v=yEVsm
 
 **Role: Senior Gameplay Programmer**
 
-At Jagex, I worked on an unreleased ARPG in Unreal, focusing on character abilities, movement, and combat. Although the project was cancelled, it gave me the chance to spend several years working closely on action gameplay systems.
+At Jagex, I worked on an unreleased ARPG in Unreal, focusing on character abilities, movement, and combat. Although the project was cancelled, it gave me the chance to spend several years working closely on action gameplay systems. I also worked with design on an AI Director system, inspired by Left 4 Dead, that dynamically balanced pacing and difficulty and was later featured in a GDC talk.
 
 ## Digit Game Studios, 2016 to 2018
 
