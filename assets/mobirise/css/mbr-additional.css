@@ -2196,16 +2196,3 @@ iframe.mbr-embedded-video {
 .cid-s48P1Icc8J .mbr-iconfont-social {
   line-height: 1.2; /* allow full glyph ascenders */
 }
-
-/* Role credit line under project titles */
-.role-line {
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #8f8f8f;
-  margin-top: -0.5rem;
-  margin-bottom: 1rem;
-}
-.role-line.mbr-white {
-  color: #9a9a9a;
-}

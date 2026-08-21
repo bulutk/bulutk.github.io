@@ -14,11 +14,15 @@ Our first world is Village of Whispers, a living village where a single prophecy
 
 Website: [second-river-games.com](https://second-river-games.com) ([markdown](https://second-river-games.com/index.md))
 
-## PhilosopherKing, 2025
+## Philosopher King, 2025
 
 **Role: Head of Game Development**
 
-At PhilosopherKing, I explored how large language models could be used in game development to create more dynamic characters, more reactive worlds, and stories shaped through interaction.
+At Philosopher King I ran the game team, sitting between the founders and the people building the game. The project was AI-native, and it had a real architectural problem underneath it: the game logic lived on the server, Unity was a thin stateless client that drew whatever it was told to draw, and a separate service handled the machine learning. Adding a single tunable value meant a relay race across four people and four codebases. I led the move of gameplay, tooling, and the first pass of the AI integration into Unity, so that one person could own a feature from idea to screen.
+
+The larger half of the job was people. Only two of the team had shipped a game before, both hyper-casual, so I paired with the executive producer to turn the founders' vision into sprints the team could actually run, and spent most of my time turning engineers into game developers, including moving a backend programmer into Unity full time. It was also where I worked hands-on with language models as game systems rather than as a content generator, and that experience is the foundation Second River Games is built on.
+
+Website: [philosopherking.ai](https://www.philosopherking.ai/)
 
 ## ustwo games, 2021 to 2025
 

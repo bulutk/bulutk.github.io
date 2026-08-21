@@ -301,6 +301,20 @@
   <link rel="stylesheet" href="assets/theme/css/style.css">
   <link href="assets/fonts/style.css" rel="stylesheet">
   <link rel="preload" as="style" href="assets/mobirise/css/mbr-additional.css"><link rel="stylesheet" href="assets/mobirise/css/mbr-additional.css" type="text/css">
+
+  <style>
+    /* Role credit line under project titles. Kept inline: the external
+       stylesheet is cached for a year, so a rule added there would not
+       reach returning visitors. */
+    .role-line {
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #bbbbbb;
+      margin-top: -0.5rem;
+      margin-bottom: 1rem;
+    }
+  </style>
   
   
   
@@ -381,10 +395,13 @@
         <div class="row justify-content-center">
             <div class="col-md-12 col-lg-12">
                 
-                <h4 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5"><strong>PhilosopherKing &middot; 2025</strong></h4>
+                <h4 class="mbr-section-subtitle mbr-fonts-style mb-4 display-5"><strong>Philosopher King &middot; 2025</strong></h4>
                 <p class="role-line mbr-fonts-style">Role: Head of Game Development</p>
                 <p class="mbr-text mbr-fonts-style display-7">
-                    At PhilosopherKing, I explored how large language models could be used in game development to create more dynamic characters, more reactive worlds, and stories shaped through interaction.</p>
+                    At Philosopher King I ran the game team, sitting between the founders and the people building the game. The project was AI-native, and it had a real architectural problem underneath it: the game logic lived on the server, Unity was a thin stateless client that drew whatever it was told to draw, and a separate service handled the machine learning. Adding a single tunable value meant a relay race across four people and four codebases. I led the move of gameplay, tooling, and the first pass of the AI integration into Unity, so that one person could own a feature from idea to screen.</p>
+                <p class="mbr-text mbr-fonts-style display-7">
+                    The larger half of the job was people. Only two of the team had shipped a game before, both hyper-casual, so I paired with the executive producer to turn the founders' vision into sprints the team could actually run, and spent most of my time turning engineers into game developers, including moving a backend programmer into Unity full time. It was also where I worked hands-on with language models as game systems rather than as a content generator, and that experience is the foundation Second River Games is built on.</p>
+                <p class="mbr-text mbr-fonts-style display-7"><a href="https://www.philosopherking.ai/" target="_blank" rel="noopener" class="text-primary">philosopherking.ai</a></p>
             </div>
         </div>
     </div>
@@ -404,7 +421,7 @@
             <div class="col-12 col-lg">
                 <div class="text-wrapper">
                     <h5 class="mbr-section-subtitle mbr-fonts-style mb-3 display-2 mbr-white"><strong>Monument Valley 3</strong></h5>
-                    <p class="role-line mbr-fonts-style mbr-white">Role: Lead Programmer</p>
+                    <p class="role-line mbr-fonts-style">Role: Lead Programmer</p>
                     <p class="mbr-text mbr-fonts-style display-7 mbr-white">As Lead Programmer and technical lead on Monument Valley 3, I led the programming team through production and release, helping deliver a BAFTA-nominated, award-winning entry in one of mobile games' most acclaimed puzzle series.</p>
                 </div>
             </div>
@@ -424,7 +441,7 @@
             <div class="col-12 col-lg">
                 <div class="text-wrapper">
                     <h5 class="mbr-section-subtitle mbr-fonts-style mb-3 display-2 mbr-white"><strong>Desta: The Memories Between</strong></h5>
-                    <p class="role-line mbr-fonts-style mbr-white">Role: Lead Programmer</p>
+                    <p class="role-line mbr-fonts-style">Role: Lead Programmer</p>
                     <p class="mbr-text mbr-fonts-style display-7 mbr-white">
                         On Desta: The Memories Between, I led the programming team and helped shape a turn-based game built around story, movement, and memory. The project won Best Mobile Game at the Develop:Star Awards 2023 and the UKIE Video Game Awards 2024.
 </p>
