@@ -18,9 +18,9 @@ Website: [second-river-games.com](https://second-river-games.com) ([markdown](ht
 
 **Role: Head of Game Development**
 
-At Philosopher King I ran the game team, sitting between the founders and the people building the game. The project was AI-native, and it had a real architectural problem underneath it: the game logic lived on the server, Unity was a thin stateless client that drew whatever it was told to draw, and a separate service handled the machine learning. Adding a single tunable value meant a relay race across four people and four codebases. I led the move of gameplay, tooling, and the first pass of the AI integration into Unity, so that one person could own a feature from idea to screen.
+At Philosopher King I ran the game team, sitting between the founders and the people building the game. I consolidated gameplay, tooling, and the AI work into a single Unity project, and reshaped how work moved through the team, so that a change which used to pass through four pairs of hands before it reached the screen became something one person could own from idea to screen. Alongside the executive producer, I turned the founders' vision into sprints the team could run.
 
-The larger half of the job was people. Only two of the team had shipped a game before, both hyper-casual, so I paired with the executive producer to turn the founders' vision into sprints the team could actually run, and spent most of my time turning engineers into game developers, including moving a backend programmer into Unity full time. It was also where I worked hands-on with language models as game systems rather than as a content generator, and that experience is the foundation Second River Games is built on.
+Much of the team came from web and backend engineering, so a large part of my job was helping them work as game developers, including bringing a backend programmer into Unity full time. It was also where I worked hands-on with language models as game systems rather than as a content generator, and that experience is the foundation Second River Games is built on.
 
 Website: [philosopherking.ai](https://www.philosopherking.ai/)
 
