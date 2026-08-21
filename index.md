@@ -55,7 +55,9 @@ Full history with roles, studios and links: [Game Projects](https://www.bulutk.c
 
 With over 16 years in game development, I have led programming and technical direction on award-winning games including Monument Valley 3, Desta: The Memories Between, and Star Trek: Fleet Command. My work spans gameplay architecture, team leadership, production delivery, and turning uncertain prototypes into shipped products.
 
-Before founding Second River, I was Head of Game Development at Philosopher King, an AI-native studio, where I rebuilt the game architecture in Unity and worked hands-on with language models as game systems rather than as a content generator. I am now co-founder of Second River Games, an independent studio in Cambridge making simulation and management games, starting with Village of Whispers, where player language shapes character behaviour, belief, and emergent storytelling. I am interested in practical, grounded uses of AI that create new forms of play rather than simply adding generative content on top.
+Before founding Second River, I was Head of Game Development at Philosopher King, an AI-native studio, where I rebuilt the game architecture in Unity and worked hands-on with language models as game systems rather than as a content generator.
+
+I am now co-founder of Second River Games, an independent studio in Cambridge making simulation and management games, starting with Village of Whispers, where player language shapes character behaviour, belief, and emergent storytelling. I am interested in practical, grounded uses of AI that create new forms of play rather than simply adding generative content on top.
 
 ## Elsewhere
 
