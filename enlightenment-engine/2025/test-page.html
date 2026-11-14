@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Enlightenment Engine - Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+        
+        #game-frame {
+            flex: 2;
+            height: 100%;
+            border: none;
+        }
+        
+        #test-panel {
+            flex: 1;
+            background-color: #f5f5f5;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        
+        #test-actions {
+            margin-bottom: 20px;
+        }
+        
+        #test-actions button {
+            margin-right: 10px;
+            margin-bottom: 10px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        
+        #test-log {
+            flex: 1;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .success {
+            color: green;
+        }
+        
+        .failure {
+            color: red;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #eee;
+        }
+        
+        h2 {
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="game-frame" src="index.html"></iframe>
+    
+    <div id="test-panel">
+        <h2>Game Testing Panel</h2>
+        
+        <div id="test-actions">
+            <button id="btn-test-act1">Test Act 1</button>
+            <button id="btn-test-act2">Test Act 2</button>
+            <button id="btn-test-act3">Test Act 3</button>
+            <button id="btn-test-act4">Test Act 4</button>
+            <button id="btn-test-all">Test Full Game</button>
+            <button id="btn-clear-log">Clear Log</button>
+            <button id="btn-copy-results">Copy Results</button>
+        </div>
+        
+        <div id="test-log"></div>
+        
+        <div id="test-results" class="test-results" style="display: none;">
+            <h3>Test Results</h3>
+            <pre id="test-results-json"></pre>
+        </div>
+    </div>
+    
+    <script src="game-tester.js"></script>
+    <script>
+        // Wait for the game to load in the iframe
+        let gameTester;
+        let gameLoaded = false;
+        const gameFrame = document.getElementById('game-frame');
+        const testLog = document.getElementById('test-log');
+        const testResults = document.getElementById('test-results');
+        const testResultsJson = document.getElementById('test-results-json');
+        
+        // Initialize test buttons
+        document.getElementById('btn-test-act1').addEventListener('click', () => testAct(1));
+        document.getElementById('btn-test-act2').addEventListener('click', () => testAct(2));
+        document.getElementById('btn-test-act3').addEventListener('click', () => testAct(3));
+        document.getElementById('btn-test-act4').addEventListener('click', () => testAct(4));
+        document.getElementById('btn-test-all').addEventListener('click', testFullGame);
+        document.getElementById('btn-clear-log').addEventListener('click', clearLog);
+        document.getElementById('btn-copy-results').addEventListener('click', copyResultsToClipboard);
+        
+        // Wait for the game to load
+        gameFrame.addEventListener('load', function() {
+            gameLoaded = true;
+            log('Game loaded in iframe');
+            initializeTester();
+        });
+        
+        function initializeTester() {
+            // Create the tester - GameTester is from the parent window's game-tester.js
+            // Pass the iframe's contentWindow to the constructor
+            if (typeof GameTester === 'function') {
+                gameTester = new GameTester(gameFrame.contentWindow);
+                log('Game tester initialized');
+            } else {
+                log('Error: GameTester class not found. Ensure game-tester.js is loaded.');
+            }
+        }
+        
+        function log(message) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = message;
+            testLog.appendChild(logEntry);
+            testLog.scrollTop = testLog.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            testLog.innerHTML = '';
+            testResults.style.display = 'none';
+        }
+        
+        async function testAct(actNumber) {
+            if (!gameLoaded || !gameTester) {
+                log('Game or tester not ready yet');
+                return;
+            }
+            
+            clearLog();
+            log(`Testing Act ${actNumber}...`);
+            
+            try {
+                let result;
+                switch (actNumber) {
+                    case 1:
+                        result = await gameTester.testAct1();
+                        break;
+                    case 2:
+                        result = await gameTester.testAct2();
+                        break;
+                    case 3:
+                        result = await gameTester.testAct3();
+                        break;
+                    case 4:
+                        result = await gameTester.testAct4();
+                        break;
+                }
+                
+                displayResults();
+                
+                if (result) {
+                    log(`Act ${actNumber} test completed successfully`);
+                } else {
+                    log(`Act ${actNumber} test failed`);
+                }
+            } catch (error) {
+                log(`Error testing Act ${actNumber}: ${error.message}`);
+            }
+        }
+        
+        async function testFullGame() {
+            if (!gameLoaded || !gameTester) {
+                log('Game or tester not ready yet');
+                return;
+            }
+            
+            clearLog();
+            log('Starting full game test...');
+            
+            try {
+                const result = await gameTester.runFullTest();
+                
+                displayResults();
+                
+                if (result) {
+                    log('Full game test completed successfully!');
+                } else {
+                    log('Full game test failed');
+                }
+            } catch (error) {
+                log(`Error during full test: ${error.message}`);
+            }
+        }
+        
+        function displayResults() {
+            const results = gameTester.getResults();
+            testResultsJson.textContent = JSON.stringify(results, null, 2);
+            testResults.style.display = 'block';
+        }
+
+        function copyResultsToClipboard() {
+            const resultsText = testResultsJson.textContent;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(resultsText).then(() => {
+                    log('Test results copied to clipboard!');
+                    const copyButton = document.getElementById('btn-copy-results');
+                    const originalText = copyButton.textContent;
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => {
+                        copyButton.textContent = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    log('Failed to copy results: ' + err);
+                    fallbackCopyTextToClipboard(resultsText);
+                });
+            } else {
+                log('Clipboard API not available, using fallback copy method.');
+                fallbackCopyTextToClipboard(resultsText);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    log('Test results copied to clipboard (fallback method)!');
+                } else {
+                    log('Fallback copy method failed.');
+                }
+            } catch (err) {
+                log('Error during fallback copy: ' + err);
+            }
+
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+</html> 

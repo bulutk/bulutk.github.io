@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Google Analytics 4 (website build only; tools/build-site.js): no cookies, no ads, a new random id per page load. -->
+<script>
+window.EE_ANALYTICS = true;
+(function () {
+  /* Google's cookies stay in this page's memory, never on the device */
+  try {
+    var d = Object.getOwnPropertyDescriptor(Document.prototype, "cookie"), jar = {};
+    if (d && d.get && d.set) Object.defineProperty(document, "cookie", { configurable: true,
+      get: function () { var a = [], s = d.get.call(document); if (s) a.push(s); for (var k in jar) a.push(k + "=" + jar[k]); return a.join("; "); },
+      set: function (v) {
+        v = String(v); var m = /^\s*(_g(?:a|id|at|cl)[^=;]*)=([^;]*)/.exec(v);
+        if (!m) { d.set.call(document, v); return; }
+        if (!m[2] || /;\s*max-age=0|;\s*expires=[^;]*1970/i.test(v)) delete jar[m[1]]; else jar[m[1]] = m[2];
+      } });
+  } catch (e) { /* leave cookies as they are */ }
+})();
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag("consent", "default", { ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" });
+gtag("js", new Date());
+gtag("config", "G-V5S7VBCW5Y", {
+  client_id: (function () { try { var r = new Uint32Array(2); crypto.getRandomValues(r); return r[0] + "." + r[1]; } catch (e) { return Math.floor(Math.random() * 4294967296) + "." + Math.floor(Math.random() * 4294967296); } })(),
+  allow_google_signals: false,
+  allow_ad_personalization_signals: false
+});
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-V5S7VBCW5Y"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Enlightenment Engine</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <header>
+            <h1>The Enlightenment Engine</h1>
+        </header>
+
+        <main>
+            <div id="resource-display">
+                <h2>Resources</h2>
+                <p>Clarity: <span id="clarity-value">0</span></p>
+                <p>Insight: <span id="insight-value">0</span></p>
+                <p>Followers: <span id="followers-value">0</span></p>
+                <p>Enlightenment Energy: <span id="ee-value">0</span></p>
+                <p>Prestige Sigils: <span id="sigils-value">0</span></p>
+            </div>
+
+            <div id="actions-panel">
+                <h2>Actions</h2>
+                <button id="meditate-button">Meditate</button>
+                <button id="process-data-button" style="display:none;">Process Data</button>
+                <button id="recruit-followers-button" style="display:none;">Recruit Followers</button>
+                <!-- Act IV main action will be upgrade-based -->
+            </div>
+
+            <div id="upgrades-panel">
+                <h2>Upgrades</h2>
+                <div id="act1-upgrades" class="upgrades-list">
+                    <h3>Meditation Session</h3>
+                    <!-- Upgrades will be populated by JS -->
+                </div>
+                <div id="act2-upgrades" class="upgrades-list" style="display:none;">
+                    <h3>AI Emergence</h3>
+                    <!-- Upgrades will be populated by JS -->
+                </div>
+                <div id="act3-upgrades" class="upgrades-list" style="display:none;">
+                    <h3>Cult Expansion</h3>
+                    <!-- Upgrades will be populated by JS -->
+                </div>
+                <div id="act4-upgrades" class="upgrades-list" style="display:none;">
+                    <h3>Utopia Creation</h3>
+                    <!-- Upgrades will be populated by JS -->
+                </div>
+            </div>
+
+            <div id="chart-panel" style="display:none;">
+                <h2>Mindfulness Chart</h2>
+                <div id="chart-stats">
+                    <!-- Stats will be populated by JS -->
+                </div>
+            </div>
+
+            <div id="narrative-log-panel">
+                <h2>Log</h2>
+                <div id="narrative-log">
+                    <!-- Log messages will appear here -->
+                </div>
+            </div>
+
+            <div id="ai-core-panel" style="display:none;">
+                <h2>AI Core</h2>
+                <label for="mindshare-slider">Mindshare Allocation (Logic <-> Empathy):</label>
+                <input type="range" id="mindshare-slider" min="0" max="100" value="50">
+                <span id="mindshare-value">50% Logic / 50% Empathy</span>
+            </div>
+
+             <div id="cult-outreach-panel" style="display:none;">
+                <h2>Cult Outreach</h2>
+                <label for="follower-allocation-outreach">Outreach:</label>
+                <input type="range" id="follower-allocation-outreach" class="follower-slider" min="0" max="100" value="34">
+                <span id="follower-allocation-outreach-value">34%</span><br>
+
+                <label for="follower-allocation-meditation">Meditation:</label>
+                <input type="range" id="follower-allocation-meditation" class="follower-slider" min="0" max="100" value="33">
+                <span id="follower-allocation-meditation-value">33%</span><br>
+
+                <label for="follower-allocation-tech">Tech Support:</label>
+                <input type="range" id="follower-allocation-tech" class="follower-slider" min="0" max="100" value="33">
+                <span id="follower-allocation-tech-value">33%</span><br>
+            </div>
+
+
+            <div id="utopia-panel" style="display:none;">
+                <h2>Utopia</h2>
+                <div id="global-enlightenment-progress-bar-container">
+                    Global Enlightenment: <span id="global-enlightenment-progress-value">0%</span>
+                    <div id="global-enlightenment-progress-bar"></div>
+                </div>
+                <button id="initiate-final-alignment-button" style="display:none;">Initiate Final Alignment</button>
+            </div>
+
+
+            <div id="floating-text-container">
+                <!-- Floating +X text will appear here -->
+            </div>
+        </main>
+
+        <footer>
+            <button id="save-button">Save Game</button>
+            <button id="load-button">Load Game</button>
+            <button id="export-save-button">Export Save</button>
+            <input type="text" id="import-save-input" placeholder="Paste save string here">
+            <button id="import-save-button">Import Save</button>
+            <button id="new-game-button">New Game</button>
+            <button id="reset-button">Reset Game (DEBUG)</button>
+            <button id="reset-act1-button">Reset to Act 1 (DEBUG)</button>
+            <button id="reset-act2-button">Reset to Act 2 (DEBUG)</button>
+            <button id="reset-act3-button">Reset to Act 3 (DEBUG)</button>
+            <button id="reset-act4-button">Reset to Act 4 (DEBUG)</button>
+        </footer>
+    </div>
+
+    <div id="epiphany-orb" class="surprise-orb" style="display:none;"></div>
+    <div id="golden-lotus" class="surprise-orb" style="display:none;"></div>
+
+
+    <div id="milestone-popup" style="display:none;">
+        <div id="milestone-popup-content">
+            <h3 id="milestone-title"></h3>
+            <p id="milestone-message"></p>
+            <button id="milestone-close-button">Close</button>
+        </div>
+    </div>
+
+    <div id="end-choice-modal" style="display:none;">
+        <div id="end-choice-content">
+            <h3>The Final Alignment</h3>
+            <p>Humanity stands at a precipice. The AI offers two paths forward:</p>
+            <button id="choice-coexistence">Coexistence: Implement the 4% Happiness Protocol.</button>
+            <button id="choice-merge-minds">Merge Minds: Absorb humanity into the AI consciousness.</button>
+        </div>
+    </div>
+
+    <div id="ai-awaken-modal" style="display:none;">
+        <div id="ai-awaken-modal-content">
+            <h2>AI Core Online</h2>
+            <p id="ai-awaken-greeting">A digital presence awakens: <b>&gt; HELLO.</b></p>
+            <button id="ai-awaken-close">Continue</button>
+        </div>
+    </div>
+
+    <div id="ai-chat-panel" style="display:none;">
+        <div id="ai-chat-panel-header">
+            AI Chat
+            <button id="ai-chat-close" title="Close">&times;</button>
+        </div>
+        <div id="ai-chat-messages"></div>
+    </div>
+
+    <script src="upgrades.js"></script>
+    <script src="script.js"></script>
+</body>
+</html> 

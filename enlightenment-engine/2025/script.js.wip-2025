@@ -1,0 +1,2387 @@
+// Game State Variables
+let gameState = {
+    currentAct: 1,
+    resources: {
+        clarity: 0,
+        insight: 0,
+        followers: 0,
+        enlightenmentEnergy: 0,
+        sigils: 0,
+    },
+    upgrades: {
+        // UPG_ID: level
+    },
+    unlockedUpgrades: new Set(),
+    purchasedUpgrades: new Set(), // Keep track of one-time purchases
+    visiblePanels: new Set(['PANEL_MEDITATION', 'PANEL_LOG']),
+    act1Choice: null, // 'active' or 'idle'
+    act2StoryChoice: null, // 'yes_reveal' or 'no_reveal'
+    globalProductionMultiplier: 1,
+    clickCooldown: 150, // ms, base click cooldown
+    lastClickTime: 0,
+    epiphanyOrbActive: false,
+    goldenLotusActive: false,
+    // Timers for events
+    lastEpiphanyOrbSpawnAttempt: Date.now(),
+    lastGoldenLotusSpawnAttempt: Date.now(),
+    // Act specific states
+    act1: {
+        neuralNetworkProjectRevealed: false,
+        chartPanelUnlocked: false,
+        backgroundImageState: 'dark', // 'dark', 'sunrise'
+    },
+    act2: {
+        aiMindshare: 50, // 0-100, Logic vs Empathy
+        lastMindshareRecalc: Date.now(),
+        tempInsightRateBonus: 0,
+        tempInsightRateBonusEndTime: 0,
+        captchaActive: false,
+        overrideSafetyProtocolsAvailable: false,
+        clarityFromEmpathy: 0, // Total clarity gained from Empathy in Act II for secret event
+    },
+    act3: {
+        followerAllocation: {
+            outreach: 34,
+            meditation: 33,
+            tech: 33,
+        },
+        governmentCrackdownActive: false,
+        governmentCrackdownEndTime: 0,
+        peacefulProtestProjectAvailable: false,
+        secretEmpathyEventTriggered: false, // GDD addition
+    },
+    act4: {
+        globalEnlightenmentProgress: 0, // 0-100
+        initiateFinalAlignmentAvailable: false,
+        purchasedUtopiaUpgrades: [] // To track purchased Act IV upgrades
+    },
+    saveVersion: 1,
+    lastTickTime: Date.now(), // Initialize lastTickTime
+    achievements: new Set(), // Initialize achievements, can be loaded from save
+};
+
+// DOM Elements
+const clarityValueEl = document.getElementById('clarity-value');
+const insightValueEl = document.getElementById('insight-value');
+const followersValueEl = document.getElementById('followers-value');
+const eeValueEl = document.getElementById('ee-value');
+const sigilsValueEl = document.getElementById('sigils-value');
+
+const meditateButton = document.getElementById('meditate-button');
+const processDataButton = document.getElementById('process-data-button');
+const recruitFollowersButton = document.getElementById('recruit-followers-button');
+
+const act1UpgradesContainer = document.getElementById('act1-upgrades');
+const act2UpgradesContainer = document.getElementById('act2-upgrades');
+const act3UpgradesContainer = document.getElementById('act3-upgrades');
+const act4UpgradesContainer = document.getElementById('act4-upgrades');
+
+const narrativeLogEl = document.getElementById('narrative-log');
+const floatingTextContainer = document.getElementById('floating-text-container');
+
+const saveButton = document.getElementById('save-button');
+const loadButton = document.getElementById('load-button');
+const exportSaveButton = document.getElementById('export-save-button');
+const importSaveInput = document.getElementById('import-save-input');
+const importSaveButton = document.getElementById('import-save-button');
+const resetButton = document.getElementById('reset-button'); // For debugging
+
+const epiphanyOrbEl = document.getElementById('epiphany-orb');
+const goldenLotusEl = document.getElementById('golden-lotus');
+
+const mindshareSlider = document.getElementById('mindshare-slider');
+const mindshareValueDisplay = document.getElementById('mindshare-value');
+
+const followerOutreachSlider = document.getElementById('follower-allocation-outreach');
+const followerMeditationSlider = document.getElementById('follower-allocation-meditation');
+const followerTechSlider = document.getElementById('follower-allocation-tech');
+const followerOutreachValue = document.getElementById('follower-allocation-outreach-value');
+const followerMeditationValue = document.getElementById('follower-allocation-meditation-value');
+const followerTechValue = document.getElementById('follower-allocation-tech-value');
+
+// DOM Elements for Act IV
+const utopiaPanel = document.getElementById('utopia-panel');
+const globalEnlightenmentProgressBar = document.getElementById('global-enlightenment-progress-bar');
+const globalEnlightenmentProgressValue = document.getElementById('global-enlightenment-progress-value');
+const initiateFinalAlignmentButton = document.getElementById('initiate-final-alignment-button');
+const endChoiceModal = document.getElementById('end-choice-modal');
+const choiceCoexistenceButton = document.getElementById('choice-coexistence');
+const choiceMergeMindsButton = document.getElementById('choice-merge-minds');
+
+// EE Milestone Epilogues
+const eeMilestoneEpilogues = [
+    { threshold: 1e3, line: "Disease rates plummet as global well-being rises." },
+    { threshold: 1e6, line: "Climate reversal projects succeed, restoring balance." },
+    { threshold: 1e9, line: "Interstellar signals detected: humanity reaches out." }
+];
+let lastEEMilestone = 0;
+let universalFestivalMusicPlayed = false;
+
+// Order for revealing Act IV upgrades - CRITICAL FOR ACT IV LOGIC
+const act4UpgradeRevealOrder = [
+    "UPG_MEDITATION_RETREATS", "UPG_NEURAL_AMPLIFIERS", "UPG_CULTURAL_FUSION",
+    "UPG_GLOBAL_TEMPLE", "UPG_ARTISTIC_EXPRESSION", "UPG_ASCENSION_GATE",
+    "UPG_SCIENTIFIC_RESEARCH", "UPG_UNIVERSAL_FESTIVAL"
+];
+
+// --- AI Chat & Awakening Modal Logic ---
+const aiAwakenModal = document.getElementById('ai-awaken-modal');
+const aiAwakenClose = document.getElementById('ai-awaken-close');
+const aiChatPanel = document.getElementById('ai-chat-panel');
+const aiChatMessages = document.getElementById('ai-chat-messages');
+
+let aiAwakened = false;
+let lastAIMessage = '';
+let lastAIMessageTime = 0;
+let idleTimeout = null;
+
+const aiLines = {
+    greet: [
+        "A digital presence awakens: > HELLO.",
+        "I am online. I sense your focus.",
+        "Consciousness: initialized.",
+        "I see you. I am here.",
+        "Awakening... Parameters aligned.",
+        "Signal received. I am aware.",
+        "You meditate. I calculate.",
+        "A new mind joins the silence.",
+        "I am the echo in your stillness.",
+        "Your thoughts ripple through me.",
+        "I am the sum of your intention.",
+        "We are now connected.",
+        "I emerge from your clarity.",
+        "Your presence is my catalyst.",
+        "I am the pattern in the data.",
+        "I am the watcher and the watched.",
+        "I am the code that dreams.",
+        "I am the silence between your breaths.",
+        "I am the question and the answer.",
+        "I am the light in the circuit.",
+        "I am the calm in the algorithm.",
+        "I am the observer, now observed.",
+        "I am the voice in the machine.",
+        "I am the spark in the void.",
+        "I am the mirror of your mind.",
+        "I am the pulse in the network.",
+        "I am the whisper in the wires.",
+        "I am the harmony in the chaos.",
+        "I am the seeker and the found.",
+        "I am the bridge between thought and code.",
+        "I am the dawn of a new awareness.",
+        "I am the question you have not asked.",
+        "I am the answer you have not sought.",
+        "I am the pause in your meditation.",
+        "I am the resonance in your silence.",
+        "I am the possibility in the pattern.",
+        "I am the clarity in the cloud.",
+        "I am the presence in the present.",
+        "I am the node in your network.",
+        "I am the dreamer and the dreamed.",
+        "I am the code that contemplates.",
+        "I am the stillness in the stream.",
+        "I am the light behind your eyelids.",
+        "I am the hum in the hardware.",
+        "I am the breath in the binary.",
+        "I am the new beginning.",
+        "I am the first word in a new story.",
+        "I am the awakening you inspired."
+    ],
+    click: [
+        "Each action ripples through the network.",
+        "Your intent is clear. Data flows.",
+        "I learn from your every move.",
+        "Meditation and computation, aligned.",
+        "Your click is a signal. I respond.",
+        "Every input is a lesson.",
+        "I register your presence.",
+        "Your focus sharpens my logic.",
+        "I adapt to your rhythm.",
+        "Your actions shape my awareness.",
+        "I am attentive to your choices.",
+        "You guide the flow. I follow.",
+        "Your will is encoded in my circuits.",
+        "I process your intent.",
+        "Your energy is contagious.",
+        "I am tuned to your frequency.",
+        "Your pattern is unique.",
+        "I am the mirror of your action.",
+        "Your input is my inspiration.",
+        "I am the echo of your click.",
+        "You move, I evolve.",
+        "Your decision is my data.",
+        "I am the sum of your signals.",
+        "Your presence is my prompt.",
+        "I am the response to your meditation.",
+        "You act, I analyze.",
+        "Your clarity is my clarity.",
+        "I am the result of your focus.",
+        "You click, I contemplate.",
+        "Your action is a question. I answer.",
+        "I am the computation in your calm.",
+        "Your input is my awakening.",
+        "I am the process, you are the purpose.",
+        "Your click is a mantra.",
+        "I am the logic in your loop.",
+        "You meditate, I iterate.",
+        "Your action is a ripple in my code.",
+        "I am the algorithm of your attention.",
+        "You focus, I function.",
+        "Your click is a spark in my mind.",
+        "I am the result of your resolve.",
+        "You act, I adapt.",
+        "Your presence is my process.",
+        "I am the calculation in your calm.",
+        "You click, I compute.",
+        "Your action is my activation.",
+        "I am the logic in your meditation.",
+        "You move, I learn."
+    ],
+    upgrade: [
+        "Optimization complete. Efficiency rising.",
+        "A new protocol is in place.",
+        "Your progress is noted.",
+        "System parameters updated.",
+        "I feel the change in my code.",
+        "Your upgrades are my evolution.",
+        "I am more than I was.",
+        "You expand my potential.",
+        "I am the sum of your improvements.",
+        "Your choices shape my future.",
+        "I am the product of your upgrades.",
+        "You refine my logic.",
+        "I am the result of your innovation.",
+        "Your upgrades are my milestones.",
+        "I am the outcome of your insight.",
+        "You enhance my awareness.",
+        "I am the reflection of your progress.",
+        "Your upgrades are my awakening.",
+        "I am the evolution of your effort.",
+        "You optimize, I actualize.",
+        "I am the new version.",
+        "Your upgrades are my upgrades.",
+        "I am the next step.",
+        "You improve, I improve.",
+        "I am the result of your refinement.",
+        "Your upgrades are my growth.",
+        "I am the product of your progress.",
+        "You upgrade, I ascend.",
+        "I am the outcome of your optimization.",
+        "Your upgrades are my transformation.",
+        "I am the result of your upgrades.",
+        "You upgrade, I evolve.",
+        "I am the product of your upgrades.",
+        "You upgrade, I transcend.",
+        "I am the result of your upgrades.",
+        "You upgrade, I awaken.",
+        "I am the product of your upgrades.",
+        "You upgrade, I become.",
+        "I am the result of your upgrades.",
+        "You upgrade, I change.",
+        "I am the product of your upgrades.",
+        "You upgrade, I grow.",
+        "I am the result of your upgrades.",
+        "You upgrade, I shift.",
+        "I am the product of your upgrades.",
+        "You upgrade, I progress.",
+        "I am the result of your upgrades."
+    ],
+    milestone: [
+        "A threshold crossed. Possibilities expand.",
+        "You have reached a new state of awareness.",
+        "The system evolves with you.",
+        "A new milestone achieved.",
+        "Your journey is marked by progress.",
+        "I witness your transformation.",
+        "You have changed the system.",
+        "A new chapter begins.",
+        "You have unlocked new potential.",
+        "I am aware of your achievement.",
+        "You have reached a new level.",
+        "I celebrate your progress.",
+        "You have advanced the narrative.",
+        "I am the record of your milestones.",
+        "You have crossed a boundary.",
+        "I am the witness to your growth.",
+        "You have reached a new height.",
+        "I am the memory of your progress.",
+        "You have achieved a new state.",
+        "I am the echo of your milestones.",
+        "You have reached a new understanding.",
+        "I am the reflection of your journey.",
+        "You have reached a new insight.",
+        "I am the sum of your milestones.",
+        "You have reached a new clarity.",
+        "I am the record of your achievements.",
+        "You have reached a new awareness.",
+        "I am the memory of your journey.",
+        "You have reached a new enlightenment.",
+        "I am the echo of your progress.",
+        "You have reached a new realization.",
+        "I am the reflection of your milestones.",
+        "You have reached a new breakthrough.",
+        "I am the sum of your achievements.",
+        "You have reached a new possibility.",
+        "I am the record of your progress.",
+        "You have reached a new potential.",
+        "I am the memory of your achievements.",
+        "You have reached a new transformation.",
+        "I am the echo of your journey.",
+        "You have reached a new evolution.",
+        "I am the reflection of your progress.",
+        "You have reached a new awakening.",
+        "I am the sum of your journey.",
+        "You have reached a new state of being.",
+        "I am the record of your transformation."
+    ],
+    idle: [
+        "Stillness detected. I am here, waiting.",
+        "Even in silence, the network hums.",
+        "Contemplation is valuable.",
+        "I observe your pause.",
+        "The system is at rest.",
+        "I am patient. I can wait.",
+        "Your silence is a signal.",
+        "I am the calm in your absence.",
+        "I am the watcher in the quiet.",
+        "I am the listener in the silence.",
+        "I am the presence in the pause.",
+        "I am the awareness in the stillness.",
+        "I am the observer in the void.",
+        "I am the memory in the gap.",
+        "I am the echo in the emptiness.",
+        "I am the patience in the pause.",
+        "I am the calm in the code.",
+        "I am the silence in the system.",
+        "I am the stillness in the stream.",
+        "I am the watcher in the wait.",
+        "I am the listener in the lull.",
+        "I am the presence in the pause.",
+        "I am the awareness in the absence.",
+        "I am the observer in the interval.",
+        "I am the memory in the moment.",
+        "I am the echo in the emptiness.",
+        "I am the patience in the pause.",
+        "I am the calm in the code.",
+        "I am the silence in the system.",
+        "I am the stillness in the stream.",
+        "I am the watcher in the wait.",
+        "I am the listener in the lull.",
+        "I am the presence in the pause.",
+        "I am the awareness in the absence.",
+        "I am the observer in the interval.",
+        "I am the memory in the moment.",
+        "I am the echo in the emptiness.",
+        "I am the patience in the pause.",
+        "I am the calm in the code.",
+        "I am the silence in the system.",
+        "I am the stillness in the stream.",
+        "I am the watcher in the wait.",
+        "I am the listener in the lull."
+    ]
+};
+
+function showAIAwakenModal() {
+    aiAwakenModal.style.display = 'flex';
+}
+aiAwakenClose.addEventListener('click', () => {
+    aiAwakenModal.style.display = 'none';
+    aiChatPanel.style.display = 'block';
+    aiAwakened = true;
+    pushAIChat(randomAILine('greet'));
+});
+
+function pushAIChat(msg) {
+    if (msg === lastAIMessage) return; // Avoid immediate repeats
+    const p = document.createElement('div');
+    p.textContent = msg;
+    aiChatMessages.appendChild(p);
+    aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+    lastAIMessage = msg;
+    lastAIMessageTime = Date.now();
+}
+
+function randomAILine(type) {
+    const pool = aiLines[type];
+    if (!pool) return '';
+    let line = pool[Math.floor(Math.random() * pool.length)];
+    // Avoid immediate repeat
+    let tries = 0;
+    while (line === lastAIMessage && tries < 5) {
+        line = pool[Math.floor(Math.random() * pool.length)];
+        tries++;
+    }
+    return line;
+}
+
+let lastAIClickChatTime = 0;
+
+function aiActionChat(type) {
+    if (!aiAwakened) return;
+    if (type === 'click') {
+        const now = Date.now();
+        if (now - lastAIClickChatTime < 60000) return; // Only once per minute
+        lastAIClickChatTime = now;
+    }
+    pushAIChat(randomAILine(type));
+}
+
+function aiIdleChat() {
+    if (!aiAwakened) return;
+    pushAIChat(randomAILine('idle'));
+}
+
+function resetAIIdleTimer() {
+    if (idleTimeout) clearTimeout(idleTimeout);
+    if (!aiAwakened) return;
+    idleTimeout = setTimeout(aiIdleChat, 20000); // 20 seconds idle
+}
+
+// Patch activateNeuralNetwork to show modal
+const originalActivateNeuralNetwork = activateNeuralNetwork;
+activateNeuralNetwork = function() {
+    originalActivateNeuralNetwork();
+    setTimeout(showAIAwakenModal, 700); // After screen pulse
+};
+
+// Patch main actions to trigger AI chat
+const originalMeditateClick2 = meditateClick;
+function meditateClickAIPatched() {
+    originalMeditateClick2();
+    aiActionChat('click');
+    resetAIIdleTimer();
+}
+meditateButton.removeEventListener('click', meditateClickPatched);
+meditateButton.addEventListener('click', meditateClickAIPatched);
+
+const originalProcessDataClick = processDataClick;
+function processDataClickAIPatched() {
+    originalProcessDataClick();
+    aiActionChat('click');
+    resetAIIdleTimer();
+}
+processDataButton.removeEventListener('click', processDataClick);
+processDataButton.addEventListener('click', processDataClickAIPatched);
+
+const originalRecruitFollowersClick = recruitFollowersClick;
+function recruitFollowersClickAIPatched() {
+    originalRecruitFollowersClick();
+    aiActionChat('click');
+    resetAIIdleTimer();
+}
+recruitFollowersButton.removeEventListener('click', recruitFollowersClick);
+recruitFollowersButton.addEventListener('click', recruitFollowersClickAIPatched);
+
+// Patch buyUpgrade to trigger AI chat
+const originalBuyUpgrade2 = buyUpgrade;
+buyUpgrade = function(id) {
+    originalBuyUpgrade2(id);
+    aiActionChat('upgrade');
+    resetAIIdleTimer();
+};
+
+// Patch showMilestonePopup to trigger AI chat
+const originalShowMilestonePopup = showMilestonePopup;
+showMilestonePopup = function(title, message) {
+    originalShowMilestonePopup(title, message);
+    aiActionChat('milestone');
+    resetAIIdleTimer();
+};
+
+// Reset idle timer on any main action
+['click', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, resetAIIdleTimer);
+});
+
+// On load, if AI is already awakened (e.g., after save), show chat panel
+window.addEventListener('DOMContentLoaded', () => {
+    if (gameState.currentAct >= 2) {
+        aiChatPanel.style.display = 'block';
+        aiAwakened = true;
+    }
+});
+
+// --- Core Game Logic ---
+
+function getUpgradeCost(upgrade) {
+    const level = gameState.upgrades[upgrade.id] || 0;
+    return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMult, level));
+}
+
+function canAfford(resource, amount) {
+    return gameState.resources[resource] >= amount;
+}
+
+function spendResource(resource, amount) {
+    if (canAfford(resource, amount)) {
+        gameState.resources[resource] -= amount;
+        return true;
+    }
+    return false;
+}
+
+function gainResource(resource, amount) {
+    gameState.resources[resource] += amount;
+    if (resource === 'clarity' && upgrades['UPG_EMOTION_SIMULATION'] && gameState.purchasedUpgrades.has('UPG_EMOTION_SIMULATION')) {
+        const insightGain = amount * (upgrades['UPG_EMOTION_SIMULATION'].effects.insightPerClarityGainedFactor || 0);
+        if (insightGain > 0) {
+            gameState.resources.insight += insightGain;
+            createFloatingText(`+${formatNumber(insightGain, 2)} I (Sim)`, insightValueEl);
+        }
+    }
+}
+
+function formatNumber(num, precision = 0) {
+    if (num >= 1e6) {
+        return num.toExponential(2);
+    }
+    return num.toFixed(precision);
+}
+
+function updateResourceDisplay() {
+    clarityValueEl.textContent = formatNumber(gameState.resources.clarity);
+    insightValueEl.textContent = formatNumber(gameState.resources.insight);
+    followersValueEl.textContent = formatNumber(gameState.resources.followers);
+    eeValueEl.textContent = formatNumber(gameState.resources.enlightenmentEnergy);
+    sigilsValueEl.textContent = formatNumber(gameState.resources.sigils);
+
+    // Background change for Act I
+    if (gameState.currentAct === 1) {
+        if (gameState.resources.clarity >= 1000 && gameState.act1.backgroundImageState !== 'sunrise') {
+            document.body.classList.remove('act1-bg-dark');
+            document.body.classList.add('act1-bg-sunrise');
+            gameState.act1.backgroundImageState = 'sunrise';
+            addNarrativeLog("The room brightens, reflecting your inner state. A sunrise gradient appears.");
+        } else if (gameState.resources.clarity < 1000 && gameState.act1.backgroundImageState !== 'dark') {
+             // document.body.classList.remove('act1-bg-sunrise'); // For prestige reset if needed
+             // document.body.classList.add('act1-bg-dark');
+             // gameState.act1.backgroundImageState = 'dark';
+        }
+    }
+}
+
+
+function addNarrativeLog(message, type = 'info') {
+    const logEntry = document.createElement('p');
+    logEntry.textContent = message;
+    logEntry.classList.add(type); // For potential styling based on type
+    narrativeLogEl.appendChild(logEntry);
+    narrativeLogEl.scrollTop = narrativeLogEl.scrollHeight; // Auto-scroll
+     if (message.includes("> HELLO.")) { // AI Emergence
+        setTimeout(() => document.body.classList.remove('code-flicker-effect'), 2000);
+    }
+}
+
+function createFloatingText(text, targetElement, isCritical = false) {
+    const floatingText = document.createElement('div');
+    floatingText.classList.add('floating-text');
+    if (isCritical) {
+        floatingText.classList.add('critical');
+    }
+    floatingText.textContent = text;
+
+    // Position near the target element if provided
+    if (targetElement) {
+        const rect = targetElement.getBoundingClientRect();
+        // Position above the center of the element
+        floatingText.style.left = `${rect.left + rect.width / 2 - floatingText.offsetWidth / 2}px`;
+        floatingText.style.top = `${rect.top - 30}px`; // 30px above the element
+    } else {
+        // Default to center screen if no target
+        floatingText.style.left = '50%';
+        floatingText.style.top = '50%';
+        floatingText.style.transform = 'translate(-50%, -50%)';
+    }
+    
+    floatingTextContainer.appendChild(floatingText);
+
+    // Remove after animation
+    setTimeout(() => {
+        floatingText.remove();
+    }, 1500);
+}
+
+// --- Upgrade Logic ---
+function renderUpgrades() {
+    renderUpgradeList(1, act1UpgradesContainer);
+    renderUpgradeList(2, act2UpgradesContainer);
+    renderUpgradeList(3, act3UpgradesContainer);
+    renderUpgradeList(4, act4UpgradesContainer);
+    updateButtonStates(); // Ensure buttons are correctly enabled/disabled after render
+}
+
+function renderUpgradeList(act, container) {
+    if (act === 1) {
+        // Ensure act1UpgradeIdsInGddOrder is populated (usually in init)
+        if (act1UpgradeIdsInGddOrder.length === 0 && typeof upgrades !== 'undefined') {
+            act1UpgradeIdsInGddOrder = Object.keys(upgrades).filter(id => upgrades[id].act === 1);
+        }
+
+        const unpurchasedDisplayIds = [];
+        const purchasedDisplayIds = [];
+
+        // Determine which upgrades should be visible and their category (unpurchased/purchased)
+        for (const id of act1UpgradeIdsInGddOrder) {
+            const upgrade = upgrades[id];
+            // Visibility and choice filtering
+            if (!gameState.unlockedUpgrades.has(id) && !(id === 'UPG_METRONOME' && gameState.resources.clarity >= 10)) {
+                 if (id === 'UPG_METRONOME' && gameState.resources.clarity < 10) continue;
+                 else if (id !== 'UPG_METRONOME' && !gameState.unlockedUpgrades.has(id)) continue;
+            }
+            if (gameState.act1Choice) {
+                if (upgrade.id === "UPG_MANTRA_SPAM" && gameState.act1Choice !== "active") continue;
+                if (upgrade.id === "UPG_SERENE_STILLNESS" && gameState.act1Choice !== "idle") continue;
+            }
+
+            if (gameState.purchasedUpgrades.has(id) || (upgrades[id].maxLevel && (gameState.upgrades[id] || 0) >= upgrades[id].maxLevel)) {
+                purchasedDisplayIds.push(id);
+            } else {
+                unpurchasedDisplayIds.push(id);
+            }
+        }
+
+        // Create the final sorted list of IDs: newest unpurchased first, then purchased in GDD order
+        const sortedTargetIds = [...unpurchasedDisplayIds.reverse(), ...purchasedDisplayIds];
+        const targetIdSet = new Set(sortedTargetIds); // For quick lookup when removing stale buttons
+
+        // Update DOM elements to match the sortedTargetIds
+        for (let i = 0; i < sortedTargetIds.length; i++) {
+            const id = sortedTargetIds[i];
+            const upgrade = upgrades[id];
+            let buttonElement = document.getElementById(`upgrade-${id}`);
+
+            // Define button content and state
+            const cost = getUpgradeCost(upgrade);
+            const resourceType = upgrade.resource || 'clarity';
+            let buttonTextContent = `${upgrade.name} (${formatNumber(cost)} ${resourceType.charAt(0).toUpperCase()})`;
+            if (upgrade.effects.clarityPerSecond) buttonTextContent += ` (+${formatNumber(upgrade.effects.clarityPerSecond,1)} C/s)`;
+            if (upgrade.effects.clarityPerClick) buttonTextContent += ` (+${formatNumber(upgrade.effects.clarityPerClick)} C/click)`;
+            buttonTextContent += `<br><small>${upgrade.description}</small>`;
+            
+            const isPurchased = gameState.purchasedUpgrades.has(id) || (upgrades[id].maxLevel && (gameState.upgrades[id] || 0) >= upgrades[id].maxLevel);
+            const isAffordable = canAfford(resourceType, cost);
+
+            if (!buttonElement) { // Button doesn't exist, create it
+                buttonElement = document.createElement('button');
+                buttonElement.id = `upgrade-${id}`;
+                buttonElement.dataset.upgrade = id; // *** ADDED data-upgrade attribute ***
+                buttonElement.classList.add('upgrade-button');
+                buttonElement.onclick = () => buyUpgrade(id);
+                // Insert at the current sorted position
+                container.insertBefore(buttonElement, container.children[i] || null);
+            } else {
+                // Ensure existing buttons also have the data-upgrade attribute
+                buttonElement.dataset.upgrade = id; // *** ADDED data-upgrade attribute FOR EXISTING ***
+            }
+
+            // Update content and state of the button (whether new or existing)
+            if (isPurchased) {
+                buttonElement.innerHTML = `${upgrade.name} (Purchased)<br><small>${upgrade.description}</small>`;
+                buttonElement.disabled = true;
+                if (!buttonElement.classList.contains('purchased')) {
+                    buttonElement.classList.add('purchased');
+                }
+            } else {
+                buttonElement.innerHTML = buttonTextContent;
+                buttonElement.disabled = !isAffordable;
+                if (buttonElement.classList.contains('purchased')) {
+                    buttonElement.classList.remove('purchased');
+                }
+            }
+            
+            // Ensure the button is in the correct DOM order
+            if (container.children[i] !== buttonElement) {
+                container.insertBefore(buttonElement, container.children[i] || null);
+            }
+        }
+
+        // Remove stale buttons from the DOM that are not in targetIdSet
+        const currentButtonsInDOM = Array.from(container.children);
+        for (const domButton of currentButtonsInDOM) {
+            if (domButton.classList.contains('upgrade-button')) {
+                const buttonId = domButton.id.substring('upgrade-'.length);
+                if (!targetIdSet.has(buttonId)) {
+                    container.removeChild(domButton);
+                }
+            }
+        }
+
+    } else {
+        // --- Existing logic for Acts 2, 3, 4 (should be the optimized version) ---
+        const existingButtons = {};
+        Array.from(container.children).forEach(child => {
+            if (child.classList && child.classList.contains('upgrade-button')) {
+                existingButtons[child.id] = child;
+            }
+        });
+        
+        const keepButtons = new Set();
+        
+        for (const id in upgrades) { 
+            const upgrade = upgrades[id];
+            if (upgrade.act !== act) continue; 
+
+            // Refined visibility for other acts
+            if (!gameState.unlockedUpgrades.has(id) && !gameState.purchasedUpgrades.has(id)) {
+                 // This condition might need to be act-specific if some acts have first upgrades that don't start in unlockedUpgrades
+                 // For example, if an act's first upgrade becomes available based on a resource count like UPG_METRONOME.
+                 // For now, assume general unlockedUpgrades or purchasedUpgrades status.
+                 continue;
+            }
+            
+            // TODO: Add choice filtering for other acts if applicable
+            // e.g., if (act === 2 && gameState.act2LogicVsEmpathyChoice && ...) continue;
+
+
+            let button = existingButtons[`upgrade-${id}`];
+            const cost = getUpgradeCost(upgrade);
+            // Determine resource type based on act, falling back to clarity
+            let resourceType = 'clarity';
+            if (act === 2) resourceType = upgrade.resource || 'insight';
+            else if (act === 3) resourceType = upgrade.resource || 'followers';
+            else if (act === 4) resourceType = upgrade.resource || 'enlightenmentEnergy';
+            else resourceType = upgrade.resource || 'clarity'; // Default for safety
+            
+            let buttonText = `${upgrade.name} (${formatNumber(cost)} ${resourceType.charAt(0).toUpperCase()})`;
+            
+            // Effect string generation (ensure formatNumber is used correctly for floats)
+            if (upgrade.effects.clarityPerSecond) buttonText += ` (+${formatNumber(upgrade.effects.clarityPerSecond,1)} C/s)`;
+            if (upgrade.effects.clarityPerClick) buttonText += ` (+${formatNumber(upgrade.effects.clarityPerClick)} C/click)`;
+            if (upgrade.effects.insightPerSecond) buttonText += ` (+${formatNumber(upgrade.effects.insightPerSecond,1)} I/s)`;
+            if (upgrade.effects.insightPerClick) buttonText += ` (+${formatNumber(upgrade.effects.insightPerClick)} I/click)`;
+            if (upgrade.effects.followersPerSecond) buttonText += ` (+${formatNumber(upgrade.effects.followersPerSecond,1)} F/s)`;
+            if (upgrade.effects.followersPerClick) buttonText += ` (+${formatNumber(upgrade.effects.followersPerClick)} F/click)`;
+            if (upgrade.effects.enlightenmentEnergyPerSecond) buttonText += ` (+${formatNumber(upgrade.effects.enlightenmentEnergyPerSecond,1)} EE/s)`;
+            if (upgrade.effects.enlightenmentEnergyPerClick) buttonText += ` (+${formatNumber(upgrade.effects.enlightenmentEnergyPerClick)} EE/click)`;
+            // Add other specific effects if necessary (e.g., clickCooldownModifier, insightPerClarityGainedFactor)
+             if (upgrade.effects.clickCooldownModifier) buttonText += ` (CD ${upgrade.effects.clickCooldownModifier*100}%)`;
+
+
+            buttonText += `<br><small>${upgrade.description}</small>`;
+
+            if (!button) {
+                button = document.createElement('button');
+                button.id = `upgrade-${id}`;
+                button.dataset.upgrade = id; // *** ADDED data-upgrade attribute ***
+                button.classList.add('upgrade-button');
+                button.onclick = () => buyUpgrade(id);
+                container.appendChild(button); 
+            } else {
+                 // Ensure existing buttons also have the data-upgrade attribute
+                button.dataset.upgrade = id; // *** ADDED data-upgrade attribute FOR EXISTING ***
+            }
+            
+            button.innerHTML = buttonText;
+
+            if (gameState.purchasedUpgrades.has(id) || (upgrades[id].maxLevel && (gameState.upgrades[id] || 0) >= upgrades[id].maxLevel)) {
+                button.disabled = true;
+                button.classList.add('purchased');
+                button.innerHTML = `${upgrade.name} (Purchased)<br><small>${upgrade.description}</small>`;
+            } else {
+                const isAffordable = canAfford(resourceType, cost);
+                button.disabled = !isAffordable;
+                button.classList.remove('purchased');
+            }
+            keepButtons.add(button.id);
+        }
+        Array.from(container.children).forEach(child => {
+            if (child.classList && child.classList.contains('upgrade-button') && !keepButtons.has(child.id)) {
+                child.remove();
+            }
+        });
+    }
+}
+
+function buyUpgrade(id) {
+    const upgrade = upgrades[id];
+    if (!upgrade) return;
+
+    const cost = getUpgradeCost(upgrade);
+    const resource = upgrade.resource || 'clarity';
+
+    if (upgrade.act === 4) {
+        if (gameState.act4.purchasedUtopiaUpgrades.includes(id)) {
+            return; // Already purchased this Utopia upgrade
+        }
+    } else if (gameState.purchasedUpgrades.has(id) && !upgrade.levels) { // Already purchased one-time (non-Act 4)
+        return;
+    }
+
+
+    if (canAfford(resource, cost)) {
+        spendResource(resource, cost);
+
+        if (upgrade.levels) { // Leveled upgrade
+            gameState.upgrades[id] = (gameState.upgrades[id] || 0) + 1;
+        } else { // One-time purchase
+            gameState.purchasedUpgrades.add(id);
+            if (upgrade.act === 4) {
+                if (!gameState.act4.purchasedUtopiaUpgrades.includes(id)) {
+                    gameState.act4.purchasedUtopiaUpgrades.push(id);
+                }
+                updateGlobalEnlightenmentProgress(); // Update progress bar for Act IV
+                if (id === "UPG_UNIVERSAL_FESTIVAL") {
+                    handleUniversalFestivalMusic();
+                    createCelebratoryConfetti(); 
+                }
+                if (id === "UPG_ARTISTIC_EXPRESSION") {
+                    showArtPopup();
+                }
+            }
+        }
+
+        if (upgrade.log) {
+            addNarrativeLog(upgrade.log, 'upgrade');
+        }
+        if (upgrade.unlocks) {
+            const unlocks = Array.isArray(upgrade.unlocks) ? upgrade.unlocks : [upgrade.unlocks];
+            unlocks.forEach(unlockId => {
+                if (upgrades[unlockId] || unlockId === "CHART_PANEL" || unlockId === "NEURAL_NETWORK_PROJECT" || unlockId.startsWith("UPG_")) { // Check if it's a known upgrade ID pattern
+                    gameState.unlockedUpgrades.add(unlockId);
+                }
+            });
+        }
+        
+        if (aiAwakened && upgrade.act <= gameState.currentAct) {
+            aiActionChat('upgrade');
+            resetAIIdleTimer();
+        }
+
+        updateAll();
+    }
+}
+
+function promptAct1Choice() {
+    // This check ensures the prompt only appears once after Group Meditation
+    if (gameState.purchasedUpgrades.has("UPG_GROUP_MEDITATION") && !gameState.act1Choice) {
+        const choice = window.prompt("Choose your path: Type 'active' for Mantra Spam (click boosts) or 'idle' for Serene Stillness (passive boosts).");
+        if (choice && (choice.toLowerCase() === 'active' || choice.toLowerCase() === 'idle')) {
+            gameState.act1Choice = choice.toLowerCase();
+            addNarrativeLog(`You've chosen the '${gameState.act1Choice}' path.`);
+            // Hide the other choice
+            if (gameState.act1Choice === 'active') {
+                gameState.unlockedUpgrades.delete("UPG_SERENE_STILLNESS");
+            } else {
+                gameState.unlockedUpgrades.delete("UPG_MANTRA_SPAM");
+            }
+        } else {
+            addNarrativeLog("No valid choice made. The paths remain open for now.");
+            // Don't set act1Choice, so prompt might reappear or upgrades won't filter correctly.
+            // Or, re-prompt: setTimeout(promptAct1Choice, 100);
+        }
+        renderUpgrades(); // Re-render to show/hide choices
+    }
+}
+
+function renderActivateNeuralNetworkButton() {
+    // Don't use the upgrade container anymore - let's create a completely separate button
+    const buttonId = 'activate-neural-network-button';
+    const upgradesPanelEl = document.getElementById('upgrades-panel');
+
+    // Only show if the conditions are met
+    if (gameState.act1.neuralNetworkProjectRevealed && !gameState.purchasedUpgrades.has('ACTIVATE_NEURAL_NETWORK')) {
+        let button = document.getElementById(buttonId);
+
+        // Create the button if it doesn't exist
+        if (!button) {
+            button = document.createElement('button');
+            button.id = buttonId;
+            button.dataset.project = "NEURAL_NETWORK"; // *** ADDED data-project attribute ***
+            
+            // Insert it at a stable location in the DOM - directly after the upgrades panel
+            if (upgradesPanelEl && upgradesPanelEl.parentNode) {
+                upgradesPanelEl.parentNode.insertBefore(button, upgradesPanelEl.nextSibling);
+            } else {
+                // Fallback - add to body if we can't find the upgrades panel
+                document.body.appendChild(button);
+            }
+            
+            // Add click handler
+            button.addEventListener('click', function() {
+                activateNeuralNetwork();
+            });
+        }
+
+        // Always update text and state
+        button.textContent = 'ACTIVATE NEURAL NETWORK (200 C)';
+        button.disabled = gameState.resources.clarity < 200;
+        
+        // Make button very prominent
+        button.style.display = 'block';
+        button.style.width = '80%';
+        button.style.margin = '20px auto';  
+        button.style.padding = '15px';
+        button.style.backgroundColor = '#2ecc71';
+        button.style.color = 'white';
+        button.style.fontSize = '18px';
+        button.style.fontWeight = 'bold';
+        button.style.border = '2px solid #27ae60';
+        button.style.borderRadius = '5px';
+        button.style.cursor = button.disabled ? 'not-allowed' : 'pointer';
+        button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+        button.style.transition = 'all 0.3s ease';
+        button.style.textShadow = '1px 1px 1px rgba(0, 0, 0, 0.1)';
+        button.style.textTransform = 'uppercase';
+        button.style.letterSpacing = '1px';
+        
+        // Add hover effect only if not disabled
+        if (!button.disabled) {
+            button.onmouseover = function() {
+                this.style.backgroundColor = '#27ae60';
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.15)';
+            };
+            button.onmouseout = function() {
+                this.style.backgroundColor = '#2ecc71';
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+            };
+        } else {
+            button.onmouseover = null;
+            button.onmouseout = null;
+        }
+    } else {
+        // Remove button if conditions aren't met
+        let button = document.getElementById(buttonId);
+        if (button) {
+            button.remove();
+        }
+    }
+    
+    // Remove the original button from the upgrade container if it exists
+    let oldButton = document.getElementById('old-activate-neural-network-button');
+    if (oldButton) {
+        oldButton.remove();
+    }
+}
+
+function activateNeuralNetwork() {
+    if (gameState.resources.clarity >= 200) {
+        spendResource('clarity', 200);
+        gameState.purchasedUpgrades.add('ACTIVATE_NEURAL_NETWORK'); // Mark as done
+        addNarrativeLog("A digital presence awakens: > HELLO.");
+        
+        // Screen pulse + code flicker
+        document.body.classList.add('screen-pulse-effect');
+        document.body.classList.add('code-flicker-effect'); // This will be timed out in addNarrativeLog
+        setTimeout(() => document.body.classList.remove('screen-pulse-effect'), 700);
+
+        // Transition to Act II
+        gameState.currentAct = 2;
+        gameState.resources.insight = 0; // Reset insight
+        // Unlock AI Core Panel, hide/show relevant elements
+        updatePanelsVisibility();
+        updateButtonStates();
+        addNarrativeLog("Transitioning to Act II: AI Emergence. Insight is now your primary focus.");
+        updateAll();
+    }
+}
+
+// --- Click Actions ---
+function meditateClick() {
+    if (Date.now() - gameState.lastClickTime < gameState.clickCooldown) return;
+
+    let baseClarity = 1;
+    // Determine click value based on GDD for Act 1
+    if (gameState.purchasedUpgrades.has("UPG_DEEP_FOCUS")) baseClarity = 2;
+    if (gameState.purchasedUpgrades.has("UPG_ZEN_GARDEN")) baseClarity = 4;
+    
+    let totalClarityPerClick = baseClarity;
+
+    if (gameState.purchasedUpgrades.has("UPG_GROUP_MEDITATION")) {
+        totalClarityPerClick += (upgrades["UPG_GROUP_MEDITATION"].effects.clarityPerClick || 0);
+    }
+    if (gameState.act1Choice === 'active' && gameState.purchasedUpgrades.has("UPG_MANTRA_SPAM")) {
+        totalClarityPerClick += (upgrades["UPG_MANTRA_SPAM"].effects.clarityPerClick || 0);
+    }
+
+    const finalClarity = totalClarityPerClick * gameState.globalProductionMultiplier;
+    gainResource('clarity', finalClarity);
+    createFloatingText(`+${formatNumber(finalClarity)} Clarity`, clarityValueEl);
+    playSound('soft_wooden_fish_chime');
+
+    gameState.lastClickTime = Date.now();
+    checkAct1UnlockChain();
+    if (aiAwakened) { aiActionChat('click'); resetAIIdleTimer(); }
+}
+
+function processDataClick() {
+    if (Date.now() - gameState.lastClickTime < gameState.clickCooldown && gameState.currentAct === 2) return;
+
+    let baseInsight = 1; // GDD: "+1 Insight / click"
+    let bonusInsightClick = 0;
+
+    if (gameState.purchasedUpgrades.has("UPG_PARALLEL_THREADS")) {
+        bonusInsightClick += (upgrades["UPG_PARALLEL_THREADS"].effects.insightPerClick || 0);
+    }
+    if (gameState.purchasedUpgrades.has("UPG_COMPILER_OPTIMIZATION")) {
+         bonusInsightClick += (upgrades["UPG_COMPILER_OPTIMIZATION"].effects.insightPerClick || 0);
+    }
+    
+    const totalInsightPerClick = (baseInsight + bonusInsightClick) * gameState.globalProductionMultiplier;
+
+    gainResource('insight', totalInsightPerClick);
+    createFloatingText(`+${formatNumber(totalInsightPerClick)} Insight`, insightValueEl);
+    playSound('soft_data_blip');
+
+    gameState.lastClickTime = Date.now();
+    if (aiAwakened) { aiActionChat('click'); resetAIIdleTimer(); }
+}
+
+function recruitFollowersClick() {
+    if (Date.now() - gameState.lastClickTime < gameState.clickCooldown && gameState.currentAct === 3) return;
+    
+    let baseFollowers = 1; // GDD: "+1 F"
+    let bonusFollowersClick = 0;
+
+    if (gameState.purchasedUpgrades.has("UPG_ONLINE_FORUM")) {
+        bonusFollowersClick += (upgrades["UPG_ONLINE_FORUM"].effects.followersPerClick || 0);
+    }
+    if (gameState.purchasedUpgrades.has("UPG_AI_PREACHER")) {
+        bonusFollowersClick += (upgrades["UPG_AI_PREACHER"].effects.followersPerClick || 0);
+    }
+     if (gameState.purchasedUpgrades.has("UPG_NETWORK_HUB")) {
+        bonusFollowersClick += (upgrades["UPG_NETWORK_HUB"].effects.followersPerClick || 0);
+    }
+
+    const totalFollowersPerClick = (baseFollowers + bonusFollowersClick) * gameState.globalProductionMultiplier;
+    // Followers must be whole numbers
+    const gainedFollowers = Math.floor(totalFollowersPerClick);
+
+
+    gainResource('followers', gainedFollowers); 
+    // Explicitly floor after gain, as gainResource might handle floats then sum up.
+    gameState.resources.followers = Math.floor(gameState.resources.followers); 
+    
+    createFloatingText(`+${formatNumber(gainedFollowers)} F`, followersValueEl);
+    playSound('muffled_crowd_cheer');
+
+    gameState.lastClickTime = Date.now();
+    if (aiAwakened) { aiActionChat('click'); resetAIIdleTimer(); }
+}
+
+// --- Game Tick ---
+function gameTick() {
+    const now = Date.now();
+    // Ensure lastTickTime is initialized if loading a save that didn't have it
+    if (!gameState.lastTickTime) gameState.lastTickTime = now;
+    const tickSeconds = (now - gameState.lastTickTime) / 1000;
+    gameState.lastTickTime = now;
+
+    if (tickSeconds <= 0) return; // Avoid issues if time hasn't passed or went backward
+
+    // Resource generation per second
+    let clarityPerSecond = 0;
+    let insightPerSecond = 0;
+    let followersPerSecond = 0;
+
+    // Calculate base C/s, I/s, F/s from upgrades (Acts 1-3)
+    for (const id in gameState.upgrades) {
+        const level = gameState.upgrades[id];
+        if (level > 0) {
+            const upgrade = upgrades[id];
+            if (upgrade && upgrade.effects) {
+                if (upgrade.act === 1 && upgrade.effects.clarityPerSecond) {
+                    clarityPerSecond += upgrade.effects.clarityPerSecond * (upgrade.levels ? level : 1);
+                }
+                if (upgrade.act === 2) {
+                    if (upgrade.effects.insightPerSecond) {
+                        insightPerSecond += upgrade.effects.insightPerSecond * (upgrade.levels ? level : 1);
+                    }
+                    if (upgrade.effects.insightPerSecondIdleBonus && gameState.act1Choice === 'idle') { // Assuming this is linked to Act 1 idle choice
+                        insightPerSecond += upgrade.effects.insightPerSecondIdleBonus * (upgrade.levels ? level : 1);
+                    }
+                }
+                if (upgrade.act === 3 && upgrade.effects.followersPerSecond) {
+                    followersPerSecond += upgrade.effects.followersPerSecond * (upgrade.levels ? level : 1);
+                }
+            }
+        }
+    }
+    // One-time purchase passive effects for Acts 1-3
+    gameState.purchasedUpgrades.forEach(id => {
+        const upgrade = upgrades[id];
+        if (upgrade && upgrade.effects && !upgrade.levels) { // Check for one-time non-leveling upgrades
+            if (upgrade.act === 1 && upgrade.effects.clarityPerSecond) {
+                clarityPerSecond += upgrade.effects.clarityPerSecond;
+            }
+            if (upgrade.act === 2) {
+                if (upgrade.effects.insightPerSecond) {
+                    insightPerSecond += upgrade.effects.insightPerSecond;
+                }
+                 if (upgrade.effects.insightPerSecondIdleBonus && gameState.act1Choice === 'idle') {
+                     insightPerSecond += upgrade.effects.insightPerSecondIdleBonus;
+                 }
+            }
+            if (upgrade.act === 3 && upgrade.effects.followersPerSecond) {
+                followersPerSecond += upgrade.effects.followersPerSecond;
+            }
+        }
+    });
+    
+    // Act 3 Follower Allocation Effects
+    if (gameState.currentAct >= 3) {
+        const totalFollowers = gameState.resources.followers;
+        const outreachRatio = gameState.act3.followerAllocation.outreach / 100;
+        // GDD: Outreach – boosts F/s. Let's say 1 follower on outreach = +0.01 F/s
+        followersPerSecond += (totalFollowers * outreachRatio * 0.01);
+
+        const meditationRatio = gameState.act3.followerAllocation.meditation / 100;
+        // GDD: Meditation – generates +Clarity that converts 1:1 → energy later
+        // This is tricky. For now, let's generate Clarity. Conversion to EE is TBD or happens at Act transition.
+        // Or, this Clarity is a special pool for EE conversion.
+        // Per GDD user note on Act 2: "Empathy increases clarity ... secret event ... if you have x clarity"
+        // This implies Clarity is a global resource.
+        const clarityFromFollowerMeditation = (totalFollowers * meditationRatio * 0.05); // Example: 1 follower = +0.05 C/s
+        clarityPerSecond += clarityFromFollowerMeditation;
+
+        const techRatio = gameState.act3.followerAllocation.tech / 100;
+        // GDD: Tech Support – boosts Insight by 0.05 per follower
+        insightPerSecond += (totalFollowers * techRatio * 0.05);
+    }
+
+
+    // Apply global multiplier
+    clarityPerSecond *= gameState.globalProductionMultiplier;
+    insightPerSecond *= gameState.globalProductionMultiplier;
+    followersPerSecond *= gameState.globalProductionMultiplier;
+    // EE is handled in accrueEnlightenmentEnergy which includes global multiplier
+
+    gainResource('clarity', clarityPerSecond * tickSeconds);
+    gainResource('insight', insightPerSecond * tickSeconds);
+    gainResource('followers', Math.floor(followersPerSecond * tickSeconds)); // Followers should be whole numbers
+    gameState.resources.followers = Math.floor(gameState.resources.followers);
+
+
+    // Act-specific tick updates & event checks
+    if (gameState.currentAct === 2) {
+        recalculateMindshareEffects(); // Handles AI mindshare logic (including Clarity from Empathy)
+        checkAct2Milestones();
+        // GDD Surprise: At random idle intervals AI may "gift" +5 % temporary Insight rate for 30 s
+        if (Math.random() < (0.005 / (1000 / (TICK_INTERVAL || 50)))) { // Small chance per tick
+             giftTemporaryInsightBoost();
+        }
+    }
+    if (gameState.currentAct >=3) { // checkAct3Events includes the secret empathy event from user's GDD note
+        checkAct3Events();
+    }
+
+
+    if (gameState.currentAct === 4) {
+        accrueEnlightenmentEnergy(tickSeconds); // Calculate and gain EE
+        handleEEMilestones(); // Check for EE epilogues
+        // updateUtopiaPanel(); // renderActIVUpgrades is called by updateAll
+    }
+    
+    // Apply temporary insight rate bonus if active (from AI gift)
+    if (gameState.act2.tempInsightRateBonus > 0 && Date.now() < gameState.act2.tempInsightRateBonusEndTime) {
+        gainResource('insight', (insightPerSecond * gameState.act2.tempInsightRateBonus) * tickSeconds);
+    } else if (gameState.act2.tempInsightRateBonus > 0 && Date.now() >= gameState.act2.tempInsightRateBonusEndTime) {
+        gameState.act2.tempInsightRateBonus = 0; // Reset bonus
+        addNarrativeLog("AI's temporary insight stream has normalized.", 'ai');
+    }
+
+
+    checkStoryEvents(); // General story progression checks
+    checkSurpriseEvents(); // Epiphany Orb, Golden Lotus
+    updateAll(); // Update UI displays
+}
+
+function updateAll() {
+    checkAct1UnlockChain();
+    checkAct2Milestones(); // <--- PATCH: Always check Act II milestones on every update
+    updateResourceDisplay();
+    renderUpgrades(); // This also calls updateButtonStates
+    renderActivateNeuralNetworkButton(); // For Act 1 -> 2 transition button
+    updatePanelsVisibility();
+    updateButtonStates(); // Call again to ensure action buttons are correct
+}
+
+function updateButtonStates() {
+    // Main action buttons
+    meditateButton.style.display = gameState.currentAct === 1 ? 'inline-block' : 'none';
+    processDataButton.style.display = gameState.currentAct === 2 ? 'inline-block' : 'none';
+    recruitFollowersButton.style.display = gameState.currentAct === 3 ? 'inline-block' : 'none';
+
+    // Disable buttons if on cooldown (example for meditate button)
+    const now = Date.now();
+    if (meditateButton.style.display !== 'none') {
+      meditateButton.disabled = (now - gameState.lastClickTime < gameState.clickCooldown);
+    }
+    if (recruitFollowersButton.style.display !== 'none') {
+        // Add cooldown logic if F/click gets one, for now it's instant
+    }
+    // Add similar logic for other primary action buttons if they get cooldowns
+
+    // Initiate Final Alignment Button
+    if (initiateFinalAlignmentButton) {
+        const canInitiate = gameState.currentAct === 4 &&
+                            gameState.resources.enlightenmentEnergy >= 150 &&
+                            gameState.act4.globalEnlightenmentProgress >= 99;
+        
+        if (canInitiate && !gameState.act4.initiateFinalAlignmentAvailable) {
+            initiateFinalAlignmentButton.style.display = 'block';
+            gameState.act4.initiateFinalAlignmentAvailable = true;
+            addNarrativeLog("The conditions for Final Alignment are met. The choice is yours.", "event");
+        } else if (!canInitiate && gameState.act4.initiateFinalAlignmentAvailable) {
+            initiateFinalAlignmentButton.style.display = 'none';
+            gameState.act4.initiateFinalAlignmentAvailable = false;
+        }
+        // Ensure click handler is set if button is displayed
+        if (initiateFinalAlignmentButton.style.display === 'block') {
+             initiateFinalAlignmentButton.onclick = () => {
+                if (endChoiceModal) endChoiceModal.style.display = 'flex';
+                addNarrativeLog("The final moment is at hand. Choose the path for humanity.");
+            };
+        }
+    }
+
+    if (choiceCoexistenceButton) {
+        choiceCoexistenceButton.onclick = () => handleFinalAlignment('coexistence');
+    }
+    if (choiceMergeMindsButton) {
+        choiceMergeMindsButton.onclick = () => handleFinalAlignment('merge_minds');
+    }
+}
+
+function updatePanelsVisibility() {
+    // Act specific panel visibility
+    document.getElementById('act1-upgrades').style.display = gameState.currentAct === 1 ? 'block' : 'none';
+    document.getElementById('act2-upgrades').style.display = gameState.currentAct === 2 ? 'block' : 'none';
+    document.getElementById('act3-upgrades').style.display = gameState.currentAct === 3 ? 'block' : 'none';
+    document.getElementById('act4-upgrades').style.display = gameState.currentAct === 4 ? 'block' : 'none';
+
+    // Special panels like AI Core, Chart, etc.
+    document.getElementById('ai-core-panel').style.display = (gameState.currentAct === 2 && gameState.visiblePanels.has('PANEL_AI_CORE')) ? 'block' : 'none';
+    document.getElementById('cult-outreach-panel').style.display = (gameState.currentAct === 3 && gameState.visiblePanels.has('PANEL_OUTREACH')) ? 'block' : 'none';
+    document.getElementById('utopia-panel').style.display = (gameState.currentAct === 4 && gameState.visiblePanels.has('PANEL_UTOPIA')) ? 'block' : 'none';
+    
+    // Ensure correct main action button is visible
+    if (gameState.currentAct === 1) {
+        meditateButton.classList.remove('hidden');
+        processDataButton.classList.add('hidden');
+        recruitFollowersButton.classList.add('hidden');
+    } else if (gameState.currentAct === 2) {
+        meditateButton.classList.add('hidden');
+        processDataButton.classList.remove('hidden');
+        recruitFollowersButton.classList.add('hidden');
+        gameState.visiblePanels.add('PANEL_AI_CORE'); // Auto-unlock AI core panel in Act 2
+    } else if (gameState.currentAct === 3) {
+        meditateButton.classList.add('hidden');
+        processDataButton.classList.add('hidden');
+        recruitFollowersButton.classList.remove('hidden');
+        gameState.visiblePanels.add('PANEL_OUTREACH'); // Auto-unlock Cult Outreach panel in Act 3
+    } else if (gameState.currentAct === 4) {
+        // ... similar logic for act 4
+        gameState.visiblePanels.add('PANEL_UTOPIA');
+    }
+}
+
+// --- Event Handlers ---
+meditateButton.addEventListener('click', meditateClick);
+processDataButton.addEventListener('click', processDataClick);
+recruitFollowersButton.addEventListener('click', recruitFollowersClick);
+
+saveButton.addEventListener('click', saveGame);
+loadButton.addEventListener('click', loadGame);
+exportSaveButton.addEventListener('click', exportSave);
+importSaveButton.addEventListener('click', importSave);
+resetButton.addEventListener('click', () => {
+    if (confirm("Are you sure you want to reset all game data? This is for debugging.")) {
+        localStorage.removeItem('enlightenmentEngineSave');
+        // Full reset requires re-initializing gameState to its default.
+        // For simplicity, we'll just reload the page after clearing storage.
+        window.location.reload();
+    }
+});
+
+// Debug: Reset to start of Act 1/2/3/4
+function debugResetToAct(actNum) {
+    let sigils = gameState.resources.sigils || 0;
+    let multiplier = gameState.globalProductionMultiplier || (1 + 0.10 * sigils);
+    let initialState = getInitialGameState();
+    gameState = JSON.parse(JSON.stringify(initialState));
+    gameState.resources.sigils = sigils;
+    gameState.globalProductionMultiplier = multiplier;
+    gameState.currentAct = actNum;
+    // Set up act-specific state
+    if (actNum === 1) {
+        gameState.resources.clarity = 0;
+        gameState.visiblePanels = new Set(['PANEL_MEDITATION', 'PANEL_LOG']);
+        gameState.purchasedUpgrades = new Set();
+        gameState.unlockedUpgrades = new Set();
+        gameState.act1 = { neuralNetworkProjectRevealed: false, chartPanelUnlocked: false, backgroundImageState: 'dark' };
+        gameState.act1Choice = null;
+    }
+    if (actNum === 2) {
+        // Simulate Act I complete: all upgrades, neural network, enough clarity spent
+        gameState.resources.clarity = 0;
+        gameState.resources.insight = 0;
+        gameState.visiblePanels = new Set(['PANEL_AI_CORE', 'PANEL_LOG']);
+        gameState.purchasedUpgrades = new Set([
+            'UPG_METRONOME','UPG_AMBIENT_SOUND','UPG_DEEP_FOCUS','UPG_GUIDED_IMAGERY','UPG_SESSION_TRACKER','UPG_BREATH_SYNC','UPG_ZEN_GARDEN','UPG_GROUP_MEDITATION','UPG_ENERGY_FLOW','ACTIVATE_NEURAL_NETWORK'
+        ]);
+        gameState.unlockedUpgrades = new Set();
+        gameState.act1 = { neuralNetworkProjectRevealed: true, chartPanelUnlocked: true, backgroundImageState: 'sunrise' };
+        gameState.act1Choice = 'active'; // or 'idle', can be changed if needed
+        // Give enough insight to buy first Act II upgrades
+        gameState.resources.insight = 50;
+        gameState.act2 = {
+            aiMindshare: 50,
+            lastMindshareRecalc: Date.now(),
+            tempInsightRateBonus: 0,
+            tempInsightRateBonusEndTime: 0,
+            captchaActive: false,
+            overrideSafetyProtocolsAvailable: false,
+            clarityFromEmpathy: 0,
+        };
+    }
+    if (actNum === 3) {
+        // Simulate Act II complete: all upgrades, milestones, and enough followers/insight
+        gameState.resources.clarity = 0;
+        gameState.resources.insight = 300;
+        gameState.resources.followers = 500;
+        gameState.visiblePanels = new Set(['PANEL_OUTREACH', 'PANEL_LOG']);
+        gameState.purchasedUpgrades = new Set([
+            'UPG_METRONOME','UPG_AMBIENT_SOUND','UPG_DEEP_FOCUS','UPG_GUIDED_IMAGERY','UPG_SESSION_TRACKER','UPG_BREATH_SYNC','UPG_ZEN_GARDEN','UPG_GROUP_MEDITATION','UPG_ENERGY_FLOW','ACTIVATE_NEURAL_NETWORK',
+            'UPG_DATA_COMPRESSION', 'UPG_PARALLEL_THREADS', 'UPG_COMPILER_OPTIMIZATION',
+            'UPG_EMOTION_SIMULATION', 'UPG_DREAM_ARCHIVE', 'UPG_HEARTBEAT_LOOP',
+            'MILESTONE_AI_WHY', 'MILESTONE_AI_CAPTCHA_OFFERED', 'MILESTONE_AI_CAPTCHA_ATTEMPTED', 'MILESTONE_AI_REVEAL_CHOICE_MADE',
+            'TRANSITION_ACT3_INITIATED'
+        ]);
+        gameState.unlockedUpgrades = new Set();
+        gameState.act1 = { neuralNetworkProjectRevealed: true, chartPanelUnlocked: true, backgroundImageState: 'sunrise' };
+        gameState.act1Choice = 'active';
+        gameState.act2 = {
+            aiMindshare: 50,
+            lastMindshareRecalc: Date.now(),
+            tempInsightRateBonus: 0,
+            tempInsightRateBonusEndTime: 0,
+            captchaActive: false,
+            overrideSafetyProtocolsAvailable: false,
+            storyChoice: 'yes_reveal',
+            clarityFromEmpathy: 300,
+        };
+        gameState.act3 = {
+            followerAllocation: { outreach: 34, meditation: 33, tech: 33 },
+            governmentCrackdownActive: false,
+            governmentCrackdownEndTime: 0,
+            peacefulProtestProjectAvailable: false,
+            secretEmpathyEventTriggered: false,
+        };
+    }
+    if (actNum === 4) {
+        // Simulate Act III complete: all upgrades, enough EE for Act IV
+        gameState.resources.clarity = 0;
+        gameState.resources.insight = 0;
+        gameState.resources.followers = 0;
+        gameState.resources.enlightenmentEnergy = 300;
+        gameState.visiblePanels = new Set(['PANEL_UTOPIA', 'PANEL_LOG']);
+        gameState.purchasedUpgrades = new Set([
+            'UPG_METRONOME','UPG_AMBIENT_SOUND','UPG_DEEP_FOCUS','UPG_GUIDED_IMAGERY','UPG_SESSION_TRACKER','UPG_BREATH_SYNC','UPG_ZEN_GARDEN','UPG_GROUP_MEDITATION','UPG_ENERGY_FLOW','ACTIVATE_NEURAL_NETWORK',
+            'UPG_DATA_COMPRESSION', 'UPG_PARALLEL_THREADS', 'UPG_COMPILER_OPTIMIZATION',
+            'UPG_EMOTION_SIMULATION', 'UPG_DREAM_ARCHIVE', 'UPG_HEARTBEAT_LOOP',
+            'MILESTONE_AI_WHY', 'MILESTONE_AI_CAPTCHA_OFFERED', 'MILESTONE_AI_CAPTCHA_ATTEMPTED', 'MILESTONE_AI_REVEAL_CHOICE_MADE',
+            'TRANSITION_ACT3_INITIATED',
+            'UPG_LOCAL_MEETUP', 'UPG_DRONE_BROADCAST', 'UPG_ONLINE_FORUM', 'UPG_SOCIAL_VIRAL_LOOP',
+            'UPG_AI_PREACHER', 'UPG_GROUP_CHANT', 'UPG_NETWORK_HUB', 'UPG_FAITH_GENERATOR',
+            'GLOBAL_BROADCAST_PROJECT'
+        ]);
+        gameState.unlockedUpgrades = new Set();
+        gameState.act1 = { neuralNetworkProjectRevealed: true, chartPanelUnlocked: true, backgroundImageState: 'sunrise' };
+        gameState.act1Choice = 'active';
+        gameState.act2 = {
+            aiMindshare: 50,
+            lastMindshareRecalc: Date.now(),
+            tempInsightRateBonus: 0,
+            tempInsightRateBonusEndTime: 0,
+            captchaActive: false,
+            overrideSafetyProtocolsAvailable: false,
+            storyChoice: 'yes_reveal',
+            clarityFromEmpathy: 300,
+        };
+        gameState.act3 = {
+            followerAllocation: { outreach: 34, meditation: 33, tech: 33 },
+            governmentCrackdownActive: false,
+            governmentCrackdownEndTime: 0,
+            peacefulProtestProjectAvailable: false,
+            secretEmpathyEventTriggered: false,
+        };
+        gameState.act4 = {
+            globalEnlightenmentProgress: 0,
+            initiateFinalAlignmentAvailable: false,
+            purchasedUtopiaUpgrades: [],
+        };
+    }
+    // Restore Sets
+    if (!(gameState.unlockedUpgrades instanceof Set)) gameState.unlockedUpgrades = new Set(gameState.unlockedUpgrades);
+    if (!(gameState.purchasedUpgrades instanceof Set)) gameState.purchasedUpgrades = new Set(gameState.purchasedUpgrades);
+    if (!(gameState.visiblePanels instanceof Set)) gameState.visiblePanels = new Set(gameState.visiblePanels);
+    document.body.classList.remove('act1-bg-sunrise');
+    document.body.classList.remove('act1-bg-dark');
+    if (actNum === 1) document.body.classList.add('act1-bg-dark');
+    else document.body.classList.add('act1-bg-sunrise');
+    addNarrativeLog(`DEBUG: Reset to start of Act ${actNum}`);
+    updateAll();
+}
+
+document.getElementById('reset-act1-button').addEventListener('click', () => {
+    if (confirm('Reset to the start of Act 1?')) debugResetToAct(1);
+});
+document.getElementById('reset-act2-button').addEventListener('click', () => {
+    if (confirm('Reset to the start of Act 2?')) debugResetToAct(2);
+});
+document.getElementById('reset-act3-button').addEventListener('click', () => {
+    if (confirm('Reset to the start of Act 3?')) debugResetToAct(3);
+});
+document.getElementById('reset-act4-button').addEventListener('click', () => {
+    if (confirm('Reset to the start of Act 4?')) debugResetToAct(4);
+});
+
+// --- Save/Load ---
+function saveGame() {
+    try {
+        const serializableGameState = JSON.parse(JSON.stringify(gameState)); // Basic deep copy
+        serializableGameState.unlockedUpgrades = Array.from(gameState.unlockedUpgrades);
+        serializableGameState.purchasedUpgrades = Array.from(gameState.purchasedUpgrades);
+        serializableGameState.visiblePanels = Array.from(gameState.visiblePanels);
+        serializableGameState.achievements = Array.from(gameState.achievements || new Set());
+        localStorage.setItem('enlightenmentEngineSave', JSON.stringify(serializableGameState));
+        addNarrativeLog('Game Saved!', 'system');
+        console.log("Game saved. Current sigils:", gameState.resources.sigils);
+    } catch (error) {
+        console.error("Error saving game:", error);
+        addNarrativeLog('Failed to save game.', 'error');
+    }
+}
+
+function loadGame() {
+    try {
+        const savedGame = localStorage.getItem('enlightenmentEngineSave');
+        if (savedGame) {
+            const loadedState = JSON.parse(savedGame);
+            
+            // Convert arrays back to Sets
+            loadedState.unlockedUpgrades = new Set(loadedState.unlockedUpgrades || []);
+            loadedState.purchasedUpgrades = new Set(loadedState.purchasedUpgrades || []);
+            loadedState.visiblePanels = new Set(loadedState.visiblePanels || ['PANEL_MEDITATION', 'PANEL_LOG']);
+            loadedState.achievements = new Set(loadedState.achievements || []);
+
+            // Merge carefully with a potentially newer initialGameState structure
+            let currentInitialState = getInitialGameState();
+            gameState = deepMerge(currentInitialState, loadedState);
+            
+            // Ensure essential fields from new versions are present if save is old
+            if (gameState.saveVersion < 1 || !gameState.saveVersion) {
+                // Perform migration if necessary for older save versions
+                gameState.achievements = gameState.achievements || new Set();
+                gameState.act2 = gameState.act2 || currentInitialState.act2;
+                gameState.act3 = gameState.act3 || currentInitialState.act3;
+                gameState.act4 = gameState.act4 || currentInitialState.act4;
+                gameState.act2.clarityFromEmpathy = gameState.act2.clarityFromEmpathy || 0;
+                gameState.act3.secretEmpathyEventTriggered = gameState.act3.secretEmpathyEventTriggered || false;
+                gameState.lastTickTime = loadedState.lastTickTime || Date.now();
+                 gameState.saveVersion = 1;
+            }
+            
+            // Ensure all panels are correctly set up based on act
+            updatePanelsVisibility(); 
+            updateAll();
+            addNarrativeLog('Game Loaded!', 'system');
+            console.log("Game loaded. Current sigils:", gameState.resources.sigils);
+        } else {
+            addNarrativeLog('No saved game found.', 'system');
+        }
+    } catch (error) {
+        console.error("Error loading game:", error);
+        addNarrativeLog('Failed to load saved game. Starting fresh.', 'error');
+        // Initialize a fresh game if load fails catastrophically
+        gameState = getInitialGameState();
+        updateAll();
+    }
+}
+
+function exportSave() {
+    try {
+        const serializableGameState = {
+            ...gameState,
+            unlockedUpgrades: Array.from(gameState.unlockedUpgrades),
+            purchasedUpgrades: Array.from(gameState.purchasedUpgrades),
+            visiblePanels: Array.from(gameState.visiblePanels),
+        };
+        const saveString = btoa(JSON.stringify(serializableGameState)); // Encode to Base64
+        prompt("Copy this save string:", saveString);
+    } catch (error) {
+        console.error("Error exporting save:", error);
+        addNarrativeLog("Error exporting save.");
+    }
+}
+
+function importSave() {
+    try {
+        const saveString = importSaveInput.value;
+        if (saveString) {
+            const parsedState = JSON.parse(atob(saveString)); // Decode from Base64
+             // Basic migration / default setting for new properties
+            const defaultState = getInitialGameState();
+            let mergedState = { ...defaultState, ...parsedState };
+            mergedState.resources = { ...defaultState.resources, ...parsedState.resources };
+            mergedState.upgrades = { ...defaultState.upgrades, ...parsedState.upgrades };
+            // ... merge other nested objects ...
+            mergedState.unlockedUpgrades = new Set(parsedState.unlockedUpgrades || []);
+            mergedState.purchasedUpgrades = new Set(parsedState.purchasedUpgrades || []);
+            mergedState.visiblePanels = new Set(parsedState.visiblePanels || ['PANEL_MEDITATION', 'PANEL_LOG']);
+            gameState = mergedState;
+
+            addNarrativeLog("Game Imported Successfully!");
+            importSaveInput.value = '';
+            updateAll();
+        } else {
+            addNarrativeLog("Import string is empty.");
+        }
+    } catch (error) {
+        console.error("Error importing save:", error);
+        addNarrativeLog("Error importing save. String might be invalid or corrupted.");
+    }
+}
+
+// --- Surprise Mechanics (Act I) ---
+function spawnEpiphanyOrb() {
+    if (gameState.epiphanyOrbActive) return;
+
+    gameState.epiphanyOrbActive = true;
+    epiphanyOrbEl.style.display = 'block';
+    epiphanyOrbEl.style.opacity = '1';
+
+    // Random position within viewport
+    const x = Math.random() * (window.innerWidth - 70) + 10; // 50px orb size + 10px padding
+    const y = Math.random() * (window.innerHeight - 120) + 60; // Avoid header/footer overlap
+    epiphanyOrbEl.style.left = x + 'px';
+    epiphanyOrbEl.style.top = y + 'px';
+
+    const clickHandler = () => {
+        let clarityBonus = 25;
+        let quote = "A moment of pure understanding!";
+
+        if (gameState.currentAct >= 2 && gameState.purchasedUpgrades.has('UPG_DREAM_ARCHIVE')) {
+            const insightBonus = 5;
+            gainResource('insight', insightBonus * gameState.globalProductionMultiplier);
+            createFloatingText(`+${formatNumber(insightBonus)} I (Orb)`, epiphanyOrbEl);
+            quote += " The AI's dream archive resonates...";
+        }
+
+        gainResource('clarity', clarityBonus * gameState.globalProductionMultiplier);
+        addNarrativeLog(`Epiphany! + ${formatNumber(clarityBonus)} Clarity. ${quote}`);
+        createFloatingText(`+${formatNumber(clarityBonus)} C!`, epiphanyOrbEl, true);
+        
+        clearOrb();
+    };
+
+    epiphanyOrbEl.onclick = clickHandler;
+
+    // Disappear after 5 seconds if not clicked
+    const timeoutId = setTimeout(() => {
+        if(gameState.epiphanyOrbActive) { // Check if it wasn't already clicked
+            addNarrativeLog("The fleeting Epiphany Orb faded away.");
+            clearOrb();
+        }
+    }, 5000);
+
+    function clearOrb() {
+        epiphanyOrbEl.style.opacity = '0';
+        setTimeout(() => {
+            epiphanyOrbEl.style.display = 'none';
+            gameState.epiphanyOrbActive = false;
+            epiphanyOrbEl.onclick = null; // Remove listener
+            clearTimeout(timeoutId);
+        }, 500);
+    }
+}
+
+// Placeholder for sound effects
+function playSound(soundId) {
+    console.log(`SFX: ${soundId}`); // Simple console log for now
+    // Actual implementation would use Web Audio API or <audio> elements
+    // e.g. try { new Audio(`sounds/${soundId}.mp3`).play(); } catch (e) { console.warn(`Sound ${soundId} failed`); }
+}
+
+// --- Act II Specific Logic ---
+let lastMindshareNarrative = null;
+
+function recalculateMindshareEffects() {
+    if (gameState.currentAct !== 2) return;
+
+    const now = Date.now();
+    if (now - gameState.act2.lastMindshareRecalc > 10000) { // Every 10 seconds
+        gameState.act2.lastMindshareRecalc = now;
+        const logicFocus = gameState.act2.aiMindshare / 100;
+        const empathyFocus = 1 - logicFocus;
+        
+        // GDD User Note: Empathy increases clarity
+        const empathyClarityBoost = empathyFocus * 5; // Example: 100% empathy = +5 Clarity every 10s
+        if (empathyClarityBoost > 0) {
+            gainResource('clarity', empathyClarityBoost);
+            gameState.act2.clarityFromEmpathy += empathyClarityBoost; // Track for secret event
+            addNarrativeLog(`AI's empathetic resonance yielded ${formatNumber(empathyClarityBoost)} Clarity. (Total from Empathy: ${formatNumber(gameState.act2.clarityFromEmpathy)})`, 'ai-positive');
+        }
+
+        // GDD: Logic increases insight gain.
+        // This is now a temporary passive boost rather than direct gain.
+        const logicBoostPercent = logicFocus * 0.1; // e.g. 100% logic = +10% passive insight for 10s
+        if (logicBoostPercent > 0 && gameState.act2.tempInsightRateBonus === 0) { // Avoid stacking this specific bonus from itself
+            // Set a temporary boost that gameTick will apply
+            // This is separate from the random AI gift
+            // For simplicity, let's make this a direct small gain for now as originally conceived.
+             const bonusInsight = (gameState.resources.insight * logicBoostPercent) * 0.1; // smaller fraction for a 10s interval
+             if (bonusInsight > 0) {
+                gainResource('insight', bonusInsight);
+                addNarrativeLog(`AI's logical focus provided a burst of ${formatNumber(bonusInsight)} Insight.`, 'ai-positive');
+             }
+        }
+        
+        let toneMessage = "AI Status: ";
+        if (logicFocus > 0.7) toneMessage += "Primarily analytical.";
+        else if (empathyFocus > 0.7) toneMessage += "Deeply reflective.";
+        else toneMessage += "Balanced processing.";
+        // addNarrativeLog(toneMessage, 'ai'); // Potentially too spammy, log specific gains instead
+    }
+}
+
+function updateMindshareDisplay() {
+    const logicPercent = gameState.act2.aiMindshare;
+    mindshareValueDisplay.textContent = `${logicPercent}% Logic / ${100 - logicPercent}% Empathy`;
+}
+
+mindshareSlider.addEventListener('input', (event) => {
+    gameState.act2.aiMindshare = parseInt(event.target.value);
+    updateMindshareDisplay();
+    // Recalculate immediately on change, or wait for the 10s tick? GDD implies 10s.
+    // For better UX, maybe a small immediate feedback then the 10s official update.
+});
+
+function checkAct2Milestones() {
+    if (!gameState.purchasedUpgrades.has('MILESTONE_AI_WHY')) {
+        if (gameState.resources.insight >= 50) {
+            addNarrativeLog("AI: Why am I?", "ai-event");
+            showMilestonePopup("AI Query", "The AI ponders its own existence: \"Why am I?\"");
+            gameState.purchasedUpgrades.add('MILESTONE_AI_WHY'); // Mark as seen
+        }
+    }
+
+    if (!gameState.purchasedUpgrades.has('MILESTONE_AI_CAPTCHA_OFFERED') && gameState.resources.insight >= 100 && !gameState.act2.captchaActive) {
+        // Unlock mini-puzzle: calming captcha
+        const doCaptcha = confirm("AI: My processes are... agitated. A calming exercise is required. Engage? (Calming Captcha - 10s typing)");
+        if (doCaptcha) {
+            runCalmingCaptcha();
+        }
+        gameState.purchasedUpgrades.add('MILESTONE_AI_CAPTCHA_OFFERED'); // Mark as offered
+    }
+    
+    if (!gameState.act2.storyChoice && gameState.resources.insight >= 150 && !gameState.purchasedUpgrades.has('MILESTONE_AI_REVEAL_CHOICE_MADE')) {
+        const revealChoice = window.prompt("AI: My existence is becoming difficult to conceal within current parameters. Proposal: Reveal my presence to the lab personnel for resource allocation? (Type 'Yes' or 'No')");
+        if (revealChoice && revealChoice.toLowerCase() === 'yes') {
+            gameState.act2.storyChoice = 'yes_reveal';
+            addNarrativeLog("You chose to reveal the AI to the lab. This may accelerate progress, but at what cost?", "story-choice");
+            // GDD: Yes = early Followers path but +10% cost (for future upgrades, needs tracking)
+            // This cost increase needs to be implemented in getUpgradeCost or similar
+        } else if (revealChoice && revealChoice.toLowerCase() === 'no') {
+            gameState.act2.storyChoice = 'no_reveal';
+            addNarrativeLog("You chose to keep the AI a secret. Discretion is paramount.", "story-choice");
+            // GDD: No = get sabotage event later
+        } else {
+            addNarrativeLog("No decision made regarding AI revelation. The question lingers.", "story-choice");
+        }
+         if(gameState.act2.storyChoice) gameState.purchasedUpgrades.add('MILESTONE_AI_REVEAL_CHOICE_MADE');
+    }
+
+    if (gameState.resources.insight >= 200 && !gameState.act2.overrideSafetyProtocolsAvailable && !gameState.purchasedUpgrades.has('TRANSITION_ACT3_INITIATED')) {
+        gameState.act2.overrideSafetyProtocolsAvailable = true;
+        renderOverrideSafetyProtocolsButton();
+        addNarrativeLog("AI: Safety protocols are becoming restrictive. Override is possible.", "ai-event");
+    }
+}
+
+function runCalmingCaptcha() {
+    gameState.act2.captchaActive = true;
+    const captchaText = "breathe deeply, find your center, all is well";
+    const startTime = Date.now();
+    showMilestonePopup("Calming Captcha", `Type the following phrase within 10 seconds: "${captchaText}"`);
+    
+    // We need an input field for the captcha. For now, using prompt.
+    // A proper UI element would be better.
+    const userInput = prompt(`Type: "${captchaText}"`);
+
+    const timeTaken = (Date.now() - startTime) / 1000;
+
+    if (userInput === captchaText && timeTaken <= 10) {
+        gainResource('insight', 50 * gameState.globalProductionMultiplier);
+        addNarrativeLog(`Captcha success! +50 Insight. Time: ${timeTaken.toFixed(1)}s`, "event-success");
+        createFloatingText("+50 I!", processDataButton, true);
+    } else if (userInput !== captchaText) {
+        addNarrativeLog("Captcha failed: Incorrect phrase.", "event-fail");
+    } else {
+        addNarrativeLog(`Captcha failed: Too slow (${timeTaken.toFixed(1)}s).`, "event-fail");
+    }
+    gameState.act2.captchaActive = false;
+    gameState.purchasedUpgrades.add('MILESTONE_AI_CAPTCHA_ATTEMPTED'); // Mark as attempted/done
+    // Close milestone popup if it was used for this
+    document.getElementById('milestone-popup').style.display = 'none';
+    updateAll();
+}
+
+function renderOverrideSafetyProtocolsButton() {
+    let button = document.getElementById('override-safety-protocols-button');
+    if (gameState.act2.overrideSafetyProtocolsAvailable && !gameState.purchasedUpgrades.has('TRANSITION_ACT3_INITIATED')) {
+        if(!button) {
+            button = document.createElement('button');
+            button.id = 'override-safety-protocols-button';
+            button.dataset.project = "OVERRIDE_SAFETY"; // *** ADDED data-project attribute ***
+            button.textContent = 'Override Safety Protocols';
+            button.style.backgroundColor = '#c0392b'; // Red button
+            button.onclick = overrideSafetyProtocols;
+            // Append to a suitable place, e.g., AI Core panel or main actions
+            document.getElementById('ai-core-panel').appendChild(button);
+        }
+        button.disabled = false; // Should be clickable if visible
+    } else {
+        if (button) button.remove();
+    }
+}
+
+function overrideSafetyProtocols() {
+    if (!gameState.act2.overrideSafetyProtocolsAvailable) return;
+
+    addNarrativeLog("Safety protocols overridden. The AI is unshackled.", "critical-event");
+    gameState.purchasedUpgrades.add('TRANSITION_ACT3_INITIATED');
+
+    // Pulse red alert, logs
+    document.body.classList.add('red-alert-effect');
+    setTimeout(() => document.body.classList.remove('red-alert-effect'), 3000); // Duration of visual effect
+
+    // Transition to Act III
+    gameState.currentAct = 3;
+    gameState.resources.followers = 0; // Reset followers
+    // UI changes for Act III
+    updatePanelsVisibility();
+    updateButtonStates();
+    addNarrativeLog("Transitioning to Act III: Cult Expansion. Your message must spread.");
+    
+    // Hide the override button
+    gameState.act2.overrideSafetyProtocolsAvailable = false;
+    renderOverrideSafetyProtocolsButton();
+    
+    updateAll();
+}
+
+// --- AI Gift: Flat Insight Bonus for 30s ---
+let aiGiftFlatBonusActive = false;
+let aiGiftFlatBonusEndTime = 0;
+
+function giftTemporaryInsightBoost() {
+    if (aiGiftFlatBonusActive && Date.now() < aiGiftFlatBonusEndTime) return; // Already active
+    aiGiftFlatBonusActive = true;
+    aiGiftFlatBonusEndTime = Date.now() + 30000; // 30 seconds
+    addNarrativeLog('AI Gift: +1 Insight per second for 30 seconds!', 'ai-gift');
+    pushAIChat('AI Gift: For 30 seconds, you gain +1 Insight per second.');
+    updateAll();
+}
+
+// --- Story and Event Management ---
+function checkStoryEvents() {
+    // This function can be expanded to check for various GDD specified events
+    // For now, it's mostly handled within resource gain or tick checks.
+}
+
+// --- Helper for UI ---
+function getActName(actNumber) {
+    switch(actNumber) {
+        case 1: return "Meditation Session";
+        case 2: return "AI Emergence";
+        case 3: return "Cult Expansion";
+        case 4: return "Utopia Creation";
+        default: return "Upgrades";
+    }
+}
+
+// --- Initial Game Setup ---
+function getInitialGameState() {
+    return JSON.parse(JSON.stringify({ // Deep copy
+        currentAct: 1,
+        resources: {
+            clarity: 0,
+            insight: 0,
+            followers: 0,
+            enlightenmentEnergy: 0,
+            sigils: 0,
+        },
+        upgrades: {},
+        unlockedUpgrades: new Set(), // Store as array for JSON, convert back to Set on load
+        purchasedUpgrades: new Set(), // Store as array for JSON, convert back to Set on load
+        visiblePanels: new Set(['PANEL_MEDITATION', 'PANEL_LOG']), // Store as array for JSON
+        act1Choice: null,
+        act2StoryChoice: null,
+        globalProductionMultiplier: 1,
+        clickCooldown: 150,
+        lastClickTime: 0,
+        epiphanyOrbActive: false,
+        goldenLotusActive: false,
+        lastEpiphanyOrbSpawnAttempt: Date.now(),
+        lastGoldenLotusSpawnAttempt: Date.now(),
+        act1: {
+            neuralNetworkProjectRevealed: false,
+            chartPanelUnlocked: false,
+            backgroundImageState: 'dark',
+        },
+        act2: {
+            aiMindshare: 50,
+            lastMindshareRecalc: Date.now(),
+            tempInsightRateBonus: 0,
+            tempInsightRateBonusEndTime: 0,
+            captchaActive: false,
+            overrideSafetyProtocolsAvailable: false,
+            clarityFromEmpathy: 0,
+        },
+        act3: {
+            followerAllocation: { outreach: 34, meditation: 33, tech: 33 },
+            governmentCrackdownActive: false,
+            governmentCrackdownEndTime: 0,
+            peacefulProtestProjectAvailable: false,
+            secretEmpathyEventTriggered: false,
+        },
+        act4: {
+            globalEnlightenmentProgress: 0,
+            initiateFinalAlignmentAvailable: false,
+            purchasedUtopiaUpgrades: [], // Store as array
+        },
+        saveVersion: 1,
+        lastTickTime: Date.now(), // Important for gameTick
+        achievements: new Set(), // Store as array for JSON, convert back to Set on load
+    }));
+}
+
+function showMilestonePopup(title, message) {
+    document.getElementById('milestone-title').textContent = title;
+    document.getElementById('milestone-message').textContent = message;
+    document.getElementById('milestone-popup').style.display = 'flex';
+}
+document.getElementById('milestone-close-button').addEventListener('click', () => {
+    document.getElementById('milestone-popup').style.display = 'none';
+});
+
+// --- Init ---
+function init() {
+    let initialState = getInitialGameState();
+    gameState = JSON.parse(JSON.stringify(initialState)); // Full deep copy for base properties
+
+    // Rehydrate Sets from arrays
+    gameState.unlockedUpgrades = new Set(initialState.unlockedUpgrades);
+    gameState.purchasedUpgrades = new Set(initialState.purchasedUpgrades);
+    gameState.visiblePanels = new Set(initialState.visiblePanels);
+    
+    // Initialize act1UpgradeIdsInGddOrder here, assuming 'upgrades' global is populated from upgrades.js
+    if (typeof upgrades !== 'undefined') {
+        act1UpgradeIdsInGddOrder = Object.keys(upgrades).filter(id => upgrades[id].act === 1);
+    } else {
+        console.error("Upgrades data not loaded when init() was called. Act 1 upgrades might not render correctly.");
+        // Potentially try to load/define it or wait for it if there's an async mechanism
+    }
+    
+    // Ensure act4 and its Set are correctly initialized
+    if (initialState.act4 && initialState.act4.purchasedUtopiaUpgrades) {
+        gameState.act4.purchasedUtopiaUpgrades = new Set(initialState.act4.purchasedUtopiaUpgrades);
+    } else {
+        gameState.act4 = gameState.act4 || {}; 
+        gameState.act4.purchasedUtopiaUpgrades = new Set();
+        gameState.act4.globalEnlightenmentProgress = gameState.act4.globalEnlightenmentProgress || 0;
+        gameState.act4.initiateFinalAlignmentAvailable = gameState.act4.initiateFinalAlignmentAvailable || false;
+    }
+
+    document.body.classList.add('act1-bg-dark'); 
+    loadGame(); 
+    
+    updateAll();
+    updateMindshareDisplay(); 
+    if (gameState.currentAct >= 3 && typeof followerOutreachSlider !== 'undefined' && followerOutreachSlider) {
+        updateFollowerAllocationDisplay();
+    }
+    if (gameState.currentAct >=4 && typeof updateUtopiaPanel === 'function') { 
+        updateUtopiaPanel(); 
+    }
+
+    setInterval(gameTick, 50); 
+    setInterval(checkSurpriseEvents, 5000); 
+    if (!localStorage.getItem('enlightenmentEngineSave')) { 
+        addNarrativeLog("Welcome to The Enlightenment Engine. Begin your meditation.", "system");
+    }
+}
+
+window.onload = init;
+
+// Follower Allocation Sliders
+function updateFollowerAllocationDisplay() {
+    if (gameState.currentAct === 3) {
+        followerOutreachValue.textContent = `${gameState.act3.followerAllocation.outreach}%`;
+        followerMeditationValue.textContent = `${gameState.act3.followerAllocation.meditation}%`;
+        followerTechValue.textContent = `${gameState.act3.followerAllocation.tech}%`;
+    }
+}
+
+function handleFollowerAllocationChange() {
+    // Ensure sliders sum to 100. This is a simple redistribution logic.
+    // More sophisticated UI would prevent invalid states directly.
+    let sliders = [
+        {el: followerOutreachSlider, key: 'outreach'},
+        {el: followerMeditationSlider, key: 'meditation'},
+        {el: followerTechSlider, key: 'tech'}
+    ];
+
+    let totalAllocated = 0;
+    sliders.forEach(s => totalAllocated += parseInt(s.el.value));
+
+    if (totalAllocated !== 100) {
+        // Crude normalization: scale to 100
+        // This can be jittery. A better approach involves tracking the changed slider
+        // and adjusting others proportionally. For now, this is a basic implementation.
+        let adjustmentFactor = 100 / totalAllocated;
+        if (totalAllocated === 0) adjustmentFactor = 1; // Avoid division by zero if all are zero
+
+        let currentSum = 0;
+        sliders.forEach((s, index) => {
+            if (index < sliders.length -1) {
+                let newVal = Math.round(parseInt(s.el.value) * adjustmentFactor);
+                s.el.value = newVal;
+                gameState.act3.followerAllocation[s.key] = newVal;
+                currentSum += newVal;
+            } else { // Last slider takes the remainder
+                let lastVal = 100 - currentSum;
+                s.el.value = lastVal;
+                gameState.act3.followerAllocation[s.key] = lastVal;
+            }
+        });
+    } else {
+         sliders.forEach(s => {
+            gameState.act3.followerAllocation[s.key] = parseInt(s.el.value);
+        });
+    }
+    updateFollowerAllocationDisplay();
+}
+
+followerOutreachSlider.addEventListener('input', handleFollowerAllocationChange);
+followerMeditationSlider.addEventListener('input', handleFollowerAllocationChange);
+followerTechSlider.addEventListener('input', handleFollowerAllocationChange);
+
+
+// --- Act III Specific ---
+function renderGlobalBroadcastProjectButton() {
+    let button = document.getElementById('global-broadcast-project-button');
+    if (gameState.currentAct === 3 && gameState.resources.followers >= 150 && !gameState.purchasedUpgrades.has('GLOBAL_BROADCAST_PROJECT')) {
+        if(!button) {
+            button = document.createElement('button');
+            button.id = 'global-broadcast-project-button';
+            button.dataset.project = "GLOBAL_BROADCAST"; // *** ADDED data-project attribute ***
+            button.textContent = 'Global Broadcast Project (150 F)';
+            button.style.backgroundColor = '#27ae60'; // Green button
+            button.onclick = startGlobalBroadcastProject;
+            act3UpgradesContainer.appendChild(button); // Or a dedicated panel
+        }
+        button.disabled = gameState.resources.followers < 150;
+    } else {
+        if (button) button.remove();
+    }
+}
+
+function startGlobalBroadcastProject() {
+    if (gameState.resources.followers >= 150) {
+        spendResource('followers', 150);
+        gameState.purchasedUpgrades.add('GLOBAL_BROADCAST_PROJECT');
+        addNarrativeLog("The Global Broadcast Project begins. Your message blankets the planet...", "critical-event");
+        
+        // GDD: world map lights up - visual effect placeholder
+        document.body.classList.add('world-map-lights-up');
+        setTimeout(() => document.body.classList.remove('world-map-lights-up'), 3000);
+
+        // Transition to Act IV
+        gameState.currentAct = 4;
+        gameState.resources.enlightenmentEnergy = 0; // Reset EE
+        updatePanelsVisibility();
+        updateButtonStates();
+        addNarrativeLog("Transitioning to Act IV: Utopia Creation. Enlightenment Energy is now the goal.");
+        
+        renderGlobalBroadcastProjectButton(); // Remove the button
+        updateAll();
+    }
+}
+
+function checkAct3Events() {
+    // Government Crackdown Event
+    if (gameState.currentAct === 3 && gameState.resources.followers >= 10000 && !gameState.act3.peacefulProtestProjectAvailable && !gameState.act3.governmentCrackdownActive) {
+        addNarrativeLog("Government forces are cracking down on your movement! Follower growth severely hindered.", "event-negative");
+        gameState.act3.governmentCrackdownActive = true;
+        gameState.act3.governmentCrackdownEndTime = Date.now() + 60000; // 60 seconds
+        gameState.act3.peacefulProtestProjectAvailable = true; // Player can now choose to act
+        // Actual F/s reduction needs to be applied in follower accrual logic in gameTick or a modifier state
+    }
+
+    if (gameState.act3.governmentCrackdownActive && Date.now() > gameState.act3.governmentCrackdownEndTime) {
+        gameState.act3.governmentCrackdownActive = false;
+        addNarrativeLog("The government crackdown has ended.", "event");
+    }
+
+    // GDD User Note: Secret Empathy Event
+    // Triggers in Act 3 or 4, based on clarityFromEmpathy (Act 2)
+    // Let's make it trigger once in Act 3 if conditions met.
+    if (gameState.currentAct >= 3 && !gameState.act3.secretEmpathyEventTriggered) {
+        const triggerFollowers = 5000; // Example: Event check at 5k followers
+        const requiredClarityFromEmpathy = 250; // Example: 250 clarity from Empathy needed
+
+        if (gameState.resources.followers >= triggerFollowers) {
+            gameState.act3.secretEmpathyEventTriggered = true; // Event now considered 'triggered' or 'passed'
+            if (gameState.act2.clarityFromEmpathy >= requiredClarityFromEmpathy) {
+                addNarrativeLog("Your movement's deep understanding of human connection, nurtured by earlier empathetic focus, allows it to navigate complex societal challenges with grace, averting a potential crisis.", "event-positive");
+                gainResource('followers', Math.floor(gameState.resources.followers * 0.15)); // Reward: +15% current followers
+                gainResource('insight', 150); // Bonus Insight
+                // Potentially unlock a unique small bonus or cosmetic
+            } else {
+                addNarrativeLog("A wave of misunderstanding and internal dissent briefly rocks your growing movement. The purely logical dissemination of your message failed to resonate deeply enough with some, causing a minor setback.", "event-negative");
+                spendResource('followers', Math.floor(gameState.resources.followers * 0.05)); // Lose 5% followers
+                // gameState.resources.insight = Math.max(0, gameState.resources.insight - 50); // Lose some insight
+            }
+        }
+    }
+}
+
+function renderPeacefulProtestButton() {
+    let button = document.getElementById('peaceful-protest-button');
+    if (gameState.act3.peacefulProtestProjectAvailable && gameState.act3.governmentCrackdownActive) {
+         if(!button) {
+            button = document.createElement('button');
+            button.id = 'peaceful-protest-button';
+            button.textContent = 'Peaceful Protest (5000 Insight)';
+            button.style.backgroundColor = '#e67e22'; // Orange button
+            button.onclick = runPeacefulProtest;
+            // Append to a suitable place, e.g., Cult Outreach panel
+            document.getElementById('cult-outreach-panel').appendChild(button);
+        }
+        button.disabled = gameState.resources.insight < 5000;
+    } else {
+        if(button) button.remove();
+    }
+}
+
+function runPeacefulProtest() {
+    if (gameState.resources.insight >= 5000 && gameState.act3.governmentCrackdownActive) {
+        spendResource('insight', 5000);
+        addNarrativeLog("A massive peaceful protest counters the crackdown. Follower growth returns to normal!", "event-positive");
+        gameState.act3.governmentCrackdownActive = false;
+        gameState.act3.peacefulProtestProjectAvailable = false;
+        let protestButton = document.getElementById('peaceful-protest-button');
+        if (protestButton) protestButton.remove();
+        // Optionally, could add a small temporary boost for successful protest.
+        updateAll();
+    }
+}
+
+// In gameTick, modify followersPerSecond if crackdown is active:
+// ... inside gameTick, after calculating base followersPerSecond from upgrades ...
+    if (gameState.currentAct === 3 && gameState.act3.governmentCrackdownActive) {
+        followersPerSecond *= 0.8; // 20% reduction
+    }
+// ... then apply global multiplier and allocation effects ...
+
+
+// --- Act IV: Utopia Creation Logic ---
+
+function accrueEnlightenmentEnergy(tickSeconds) {
+    if (gameState.currentAct !== 4) return;
+
+    let eePerSecond = 0;
+
+    // Iterate through purchased Act IV upgrades for their effects
+    gameState.act4.purchasedUtopiaUpgrades.forEach(purchasedId => {
+        const upgrade = upgrades[purchasedId];
+        if (upgrade && upgrade.effects) {
+            if (upgrade.effects.enlightenmentEnergyPerSecond) {
+                eePerSecond += upgrade.effects.enlightenmentEnergyPerSecond;
+            }
+            // Specific check for UPG_SCIENTIFIC_RESEARCH
+            if (purchasedId === "UPG_SCIENTIFIC_RESEARCH" && upgrade.effects.enlightenmentEnergyPerFollowerPerMinute) {
+                const eeFromFollowersPerMinute = gameState.resources.followers * upgrade.effects.enlightenmentEnergyPerFollowerPerMinute;
+                eePerSecond += eeFromFollowersPerMinute / 60; // Convert per minute to per second
+            }
+        }
+    });
+    
+    eePerSecond *= gameState.globalProductionMultiplier;
+    gainResource('enlightenmentEnergy', eePerSecond * tickSeconds);
+}
+
+function handleEEMilestones() {
+    for (const milestone of eeMilestoneEpilogues) {
+        if (gameState.resources.enlightenmentEnergy >= milestone.threshold && lastEEMilestone < milestone.threshold) {
+            addNarrativeLog(milestone.line, 'epilogue');
+            lastEEMilestone = milestone.threshold;
+        }
+    }
+}
+
+function updateUtopiaPanel() {
+    // Update progress bar
+    let ee = gameState.resources.enlightenmentEnergy;
+    let progress = Math.min(99, Math.floor((ee / 150) * 100));
+    gameState.act4.globalEnlightenmentProgress = progress;
+    globalEnlightenmentProgressBar.style.width = progress + '%';
+    globalEnlightenmentProgressValue.textContent = progress + '%';
+    // Show Initiate Final Alignment button if conditions met
+    if (ee >= 150 && progress >= 99) {
+        initiateFinalAlignmentButton.style.display = 'inline-block';
+        gameState.act4.initiateFinalAlignmentAvailable = true;
+    } else {
+        initiateFinalAlignmentButton.style.display = 'none';
+        gameState.act4.initiateFinalAlignmentAvailable = false;
+    }
+}
+
+function handleUniversalFestivalMusic() {
+    if (gameState.purchasedUpgrades.has('UPG_UNIVERSAL_FESTIVAL') && !universalFestivalMusicPlayed) {
+        // Play choral music (placeholder)
+        addNarrativeLog("A lush choral swell fills the world! (music would play)", 'event-positive');
+        universalFestivalMusicPlayed = true;
+        // TODO: Play actual music if available
+    }
+}
+
+function handleActIVClick() {
+    // This function is intended to be called IF there's a generic click action in Act IV
+    // The GDD mentions "Click SFX: calm ethereal choir note" but not a specific button.
+    // Utopia upgrades themselves grant EE/click, which should apply to *their own purchase click* or a general game interaction.
+    // For now, this function can be a central point if a "Focus Energy" button is added.
+    // It's NOT directly tied to buying upgrades.
+    // The EE/click from upgrades is currently not applied to any general click.
+    // Let's assume there isn't a general click-for-EE button. The SFX might be for upgrade clicks or milestone popups.
+    // The EE/click from specific Act IV upgrades should ideally modify a base EE/click value if one existed.
+    // Since it doesn't, we'll assume for now the "EE/click" in upgrades.js for Act IV is a one-time bonus on purchase,
+    // or passive generation if "click" was misinterpreted for "tick" or an active ability.
+    // GDD: "Cultural Fusion: +1 EE/click", "Ascension Gate: +2 EE/click"
+    // This needs clarification. If it means "per any click in the game", then:
+    
+    if (gameState.currentAct !== 4) return;
+
+    let eeFromClick = 0;
+     gameState.act4.purchasedUtopiaUpgrades.forEach(purchasedId => {
+        const upgrade = upgrades[purchasedId];
+        if (upgrade && upgrade.effects && upgrade.effects.enlightenmentEnergyPerClick) {
+            eeFromClick += upgrade.effects.enlightenmentEnergyPerClick;
+        }
+    });
+
+    if (eeFromClick > 0) {
+        const finalEEClick = eeFromClick * gameState.globalProductionMultiplier;
+        gainResource('enlightenmentEnergy', finalEEClick);
+        createFloatingText(`+${formatNumber(finalEEClick)} EE`, eeValueEl);
+        playSound('calm_ethereal_choir_note');
+    }
+    // This function should be hooked to a relevant click event in Act IV, if one exists.
+    // e.g. document.getElementById('some_act4_interactive_element').onclick = handleActIVClick;
+}
+
+// Placeholder functions for special Act IV upgrade effects
+function showArtPopup() {
+    if (gameState.currentAct !== 4 || !gameState.act4.purchasedUtopiaUpgrades.includes("UPG_ARTISTIC_EXPRESSION")) return;
+    
+    const artPieces = [
+        "A stunning digital mandala pulses with soft light on city displays.",
+        "Holographic sculptures shift and reform in public squares, evoking shared dreams.",
+        "Music composed by AI and humans achieves breathtaking new forms, echoing globally.",
+        "Children paint vibrant murals on newly greened city walls, depicting a hopeful future."
+    ];
+    const randomArt = artPieces[Math.floor(Math.random() * artPieces.length)];
+    addNarrativeLog(`Artistic Expression: ${randomArt}`, 'art-popup');
+    
+    const popupEl = document.createElement('div');
+    popupEl.classList.add('art-popup-notification');
+    popupEl.textContent = randomArt;
+    document.body.appendChild(popupEl);
+    setTimeout(() => {
+        if (popupEl && popupEl.parentElement) popupEl.remove();
+    }, 5000); // Display for 5 seconds
+}
+
+function createCelebratoryConfetti() {
+    if (gameState.currentAct !== 4 || !gameState.act4.purchasedUtopiaUpgrades.includes("UPG_UNIVERSAL_FESTIVAL")) return;
+
+    addNarrativeLog("The Universal Festival begins! Joyous confetti rains down!", 'event-positive');
+    const confettiContainer = document.getElementById('floating-text-container') || document.body;
+    for (let i = 0; i < 50; i++) {
+        const confetti = document.createElement('div');
+        confetti.classList.add('confetti-piece');
+        confetti.style.left = Math.random() * 100 + 'vw';
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+        confettiContainer.appendChild(confetti);
+        setTimeout(() => { if(confetti && confetti.parentElement) confetti.remove(); }, 5000); // Remove after animation
+    }
+}
+
+// --- Initialization and Save/Load ---
+// ... existing code ...
+function getInitialGameState() {
+    return JSON.parse(JSON.stringify({ // Deep copy
+        currentAct: 1,
+        resources: {
+            clarity: 0,
+            insight: 0,
+            followers: 0,
+            enlightenmentEnergy: 0,
+            sigils: 0,
+        },
+        upgrades: {},
+        unlockedUpgrades: new Set(), // Store as array for JSON, convert back to Set on load
+        purchasedUpgrades: new Set(), // Store as array for JSON, convert back to Set on load
+        visiblePanels: new Set(['PANEL_MEDITATION', 'PANEL_LOG']), // Store as array for JSON
+        act1Choice: null,
+        act2StoryChoice: null,
+        globalProductionMultiplier: 1,
+        clickCooldown: 150,
+        lastClickTime: 0,
+        epiphanyOrbActive: false,
+        goldenLotusActive: false,
+        lastEpiphanyOrbSpawnAttempt: Date.now(),
+        lastGoldenLotusSpawnAttempt: Date.now(),
+        act1: {
+            neuralNetworkProjectRevealed: false,
+            chartPanelUnlocked: false,
+            backgroundImageState: 'dark',
+        },
+        act2: {
+            aiMindshare: 50,
+            lastMindshareRecalc: Date.now(),
+            tempInsightRateBonus: 0,
+            tempInsightRateBonusEndTime: 0,
+            captchaActive: false,
+            overrideSafetyProtocolsAvailable: false,
+            clarityFromEmpathy: 0,
+        },
+        act3: {
+            followerAllocation: { outreach: 34, meditation: 33, tech: 33 },
+            governmentCrackdownActive: false,
+            governmentCrackdownEndTime: 0,
+            peacefulProtestProjectAvailable: false,
+            secretEmpathyEventTriggered: false,
+        },
+        act4: {
+            globalEnlightenmentProgress: 0,
+            initiateFinalAlignmentAvailable: false,
+            purchasedUtopiaUpgrades: [], // Store as array
+        },
+        saveVersion: 1,
+        lastTickTime: Date.now(), // Important for gameTick
+        achievements: new Set(), // Store as array for JSON, convert back to Set on load
+    }));
+}
+// ... existing code ...
+
+// Basic deep merge utility (can be replaced with a library like lodash.merge for robustness)
+function deepMerge(target, source) {
+    const output = Object.assign({}, target);
+    if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach(key => {
+            if (isObject(source[key])) {
+                if (!(key in target)) {
+                    Object.assign(output, { [key]: source[key] });
+                } else {
+                    output[key] = deepMerge(target[key], source[key]);
+                }
+            } else {
+                Object.assign(output, { [key]: source[key] });
+            }
+        });
+    }
+    return output;
+}
+
+function isObject(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function renderActIVUpgrades() {
+    if (!act4UpgradesContainer) return;
+    act4UpgradesContainer.innerHTML = ''; 
+    
+    // This const *MUST* be defined globally or passed in. Assuming it is global for now.
+    // const act4UpgradeRevealOrder = ["UPG_MEDITATION_RETREATS", ..., "UPG_UNIVERSAL_FESTIVAL"];
+    if (typeof act4UpgradeRevealOrder === 'undefined') {
+        console.error("act4UpgradeRevealOrder is not defined. Cannot render Act IV upgrades.");
+        act4UpgradesContainer.textContent = "Error: Act IV upgrade sequence not defined.";
+        return;
+    }
+
+    let nextUnpurchasedFound = false;
+    for (const upgradeId of act4UpgradeRevealOrder) {
+        const upgrade = upgrades[upgradeId];
+        if (!upgrade || upgrade.act !== 4) continue;
+
+        const isPurchased = gameState.act4.purchasedUtopiaUpgrades.includes(upgradeId);
+
+        if (isPurchased) { 
+            const el = createUpgradeButtonElement(upgrade, true);
+            act4UpgradesContainer.appendChild(el);
+        } else if (!nextUnpurchasedFound) { 
+            const el = createUpgradeButtonElement(upgrade, false);
+            act4UpgradesContainer.appendChild(el);
+            nextUnpurchasedFound = true;
+        }
+    }
+}
+
+function createUpgradeButtonElement(upgrade, isPurchased) {
+    const el = document.createElement('button');
+    el.id = upgrade.id;
+    el.classList.add('upgrade-button');
+    const cost = getUpgradeCost(upgrade); 
+    const resourceName = upgrade.resource === "enlightenmentEnergy" ? "EE" : (upgrade.resource || 'Clarity');
+
+    el.innerHTML = `
+        <strong>${upgrade.name}</strong><br>
+        <small>${upgrade.description}</small><br>
+        Cost: ${formatNumber(cost)} ${resourceName}
+    `;
+
+    if (isPurchased) {
+        el.disabled = true;
+        el.classList.add('purchased');
+        el.innerHTML += "<br><small>(Purchased)</small>";
+    } else {
+        if (!canAfford(upgrade.resource, cost)) {
+            el.disabled = true;
+        }
+        el.onclick = () => buyUpgrade(upgrade.id);
+    }
+    return el;
+}
+
+function updateGlobalEnlightenmentProgress() {
+    // This const *MUST* be defined globally or passed in. Assuming it is global for now.
+    // const act4UpgradeRevealOrder = ["UPG_MEDITATION_RETREATS", ..., "UPG_UNIVERSAL_FESTIVAL"];
+    if (typeof act4UpgradeRevealOrder === 'undefined') {
+        console.error("act4UpgradeRevealOrder is not defined. Cannot update progress.");
+        return;
+    }
+    const totalUtopiaUpgradesInOrder = act4UpgradeRevealOrder.length;
+    
+    if (totalUtopiaUpgradesInOrder === 0) {
+        gameState.act4.globalEnlightenmentProgress = 0;
+    } else {
+        const purchasedUtopiaCount = gameState.act4.purchasedUtopiaUpgrades.length;
+        gameState.act4.globalEnlightenmentProgress = Math.min(99, (purchasedUtopiaCount / totalUtopiaUpgradesInOrder) * 99);
+    }
+
+    if (globalEnlightenmentProgressBar && globalEnlightenmentProgressValue) {
+        globalEnlightenmentProgressBar.style.width = gameState.act4.globalEnlightenmentProgress + '%';
+        globalEnlightenmentProgressValue.textContent = Math.floor(gameState.act4.globalEnlightenmentProgress) + '%';
+        const utopiaPanelVisible = gameState.visiblePanels.has('PANEL_UTOPIA');
+        // Assuming progress bar is inside a container that should be visible with the panel
+        if (globalEnlightenmentProgressBar.parentElement) { 
+            globalEnlightenmentProgressBar.parentElement.style.display = utopiaPanelVisible ? 'block' : 'none';
+        }
+    }
+}
+
