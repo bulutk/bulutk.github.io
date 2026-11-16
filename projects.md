@@ -1,6 +1,6 @@
 # Game Projects | Bulut Karakaya
 
-Co-founder of Second River Games, building AI-native simulation games. 16+ years creating award-winning titles. Cambridge, UK.
+Co-founder of Second River Games, building AI tools for game creators. 16+ years creating award-winning titles. Cambridge, UK.
 
 Every studio and game Bulut Karakaya has worked on, with role, years, and links.
 
@@ -8,9 +8,9 @@ Every studio and game Bulut Karakaya has worked on, with role, years, and links.
 
 **Role: Co-founder**
 
-Second River Games is an independent studio in Cambridge, UK, which I co-founded with Duygu Cakmak. We make simulation and management games: worlds built on carefully designed systems, choices with consequences, and handcrafted detail, with generative AI used where it genuinely makes a world feel alive, giving characters who remember you, interpret what you say, and react. Underneath that sits a firm layer of traditional systems, so every surprise still traces back to a cause.
+I co-founded Second River Games with Duygu Cakmak in Cambridge, UK. We’re building AI tools that give game creators the capabilities of an entire studio, bringing together specialised AI agents, gameplay systems and production tools to help turn ideas into playable games.
 
-Our first world is Village of Whispers, a living village where a single prophecy can reshape relationships, rituals, politics, and the odds of survival. When you speak, the villagers do not simply obey. They interpret you, spread the word, distort it, and slowly your words become their culture.
+Our work draws on years of leading teams and shipping games. The aim is to give creators more freedom to explore their ideas while keeping creative direction in their hands. We develop our own games alongside the tools, using real production challenges to test and improve how they work.
 
 Website: [second-river-games.com](https://second-river-games.com) ([markdown](https://second-river-games.com/index.md))
 

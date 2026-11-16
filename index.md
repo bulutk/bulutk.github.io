@@ -1,16 +1,16 @@
 # Bulut Karakaya
 
-Co-founder of Second River Games. 16 years shipping award-winning games, now building simulation worlds where language models drive character behaviour.
+Co-founder of Second River Games. 16 years building and shipping award-winning games. Now building AI tools that give game creators the capabilities of an entire studio.
 
-Bulut Karakaya is a game technical leader based in Cambridge, UK, with over 16 years shipping award-winning games across mobile, PC and console. He is co-founder of [Second River Games](https://second-river-games.com), an independent studio making simulation and management games.
+Bulut Karakaya is a game technical leader based in Cambridge, UK, with over 16 years shipping award-winning games across mobile, PC and console. He is co-founder of [Second River Games](https://second-river-games.com), a studio building AI tools that give game creators the capabilities of an entire studio.
 
 ## Current work
 
 **Second River Games, 2025 to present. Role: Co-founder.**
 
-Second River Games is an independent studio in Cambridge, UK, co-founded with Duygu Cakmak. The studio makes simulation and management games: worlds built on carefully designed systems, choices with consequences, and handcrafted detail, with generative AI used where it genuinely makes a world feel alive, giving characters who remember you, interpret what you say, and react. Underneath that sits a firm layer of traditional systems, so every surprise still traces back to a cause.
+I co-founded Second River Games with Duygu Cakmak in Cambridge, UK. We’re building AI tools that give game creators the capabilities of an entire studio, bringing together specialised AI agents, gameplay systems and production tools to help turn ideas into playable games.
 
-The studio's first world is Village of Whispers, a living village where a single prophecy can reshape relationships, rituals, politics, and the odds of survival.
+Our work draws on years of leading teams and shipping games. The aim is to give creators more freedom to explore their ideas while keeping creative direction in their hands. We develop our own games alongside the tools, using real production challenges to test and improve how they work.
 
 Website: [second-river-games.com](https://second-river-games.com)
 
@@ -53,11 +53,11 @@ Full history with roles, studios and links: [Game Projects](https://www.bulutk.c
 
 ## About
 
-With over 16 years in game development, I have led programming and technical direction on award-winning games including Monument Valley 3, Desta: The Memories Between, and Star Trek: Fleet Command. My work spans gameplay architecture, team leadership, production delivery, and turning uncertain prototypes into shipped products.
+I’m a game technical leader and studio co-founder with 16 years of experience building and shipping games across mobile, PC and console. I led programming on Monument Valley 3 and Desta: The Memories Between, and worked as a lead programmer on Star Trek: Fleet Command.
 
-Before founding Second River, I was Head of Game Development at Philosopher King, an AI-native studio, where I rebuilt the game architecture in Unity and worked hands-on with language models as game systems rather than as a content generator.
+My work has always combined hands-on gameplay engineering with helping other people create. As co-founder and sole programmer at Pera Games, I built the systems and tools that enabled a nine-person team to make Overfall. Across later roles, I’ve led programming teams and helped turn ambitious ideas into shipped games.
 
-I am now co-founder of Second River Games, an independent studio in Cambridge making simulation and management games, starting with Village of Whispers, where player language shapes character behaviour, belief, and emergent storytelling. I am interested in practical, grounded uses of AI that create new forms of play rather than simply adding generative content on top.
+I now co-found Second River Games with Duygu Cakmak. We’re building AI tools that give game creators the capabilities of an entire studio, while keeping creative direction in their hands. We develop our own games alongside the tools, testing them against the demands of making something worth playing.
 
 ## Elsewhere
 
