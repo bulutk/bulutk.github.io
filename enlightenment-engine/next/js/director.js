@@ -39,6 +39,21 @@
   /* what may speak in the voice slot while a world line holds the caption (EE-110, item 1): the reply to something the
    * player just did (a purchase, an Invite answered by a name, a thought followed), and an act's turn, which a purchase sets off */
   var BESIDE = { reply: 1, act: 1 };
+  /* (EE-112) the cards an act's closing project at the ring steps aside for, and the optional cards that never rise while
+   * it can be bought (DESIGN §4.6, "an act's closing project") */
+  var ASIDE = { decision: 1, knot: 1, question: 1 };
+  var OPTIONAL = { thought: 1, captcha: 1 };
+  var CLOSING = { p_pattern: 1, p_speak: 1, p_broadcast: 1 };
+  X.closing = function (id) { return !!CLOSING[id]; };
+  /* the act's closing project can be bought now, or its offer is waiting at the ring (on the stage or behind a card) */
+  X.closingOpen = function (s) {
+    boot();
+    var id = ['', 'p_pattern', 'p_speak', 'p_broadcast'][s.act] || '', i;
+    if (!id) return false;
+    for (i = 0; i < s.queue.length; i++) if (s.queue[i].k === 'offer' && s.queue[i].id === id) return true;
+    var p = E.find(s, id);
+    return !!(p && p.can && !p.owned);
+  };
 
   X.sink = null;
   X.fresh = function () {
@@ -279,16 +294,20 @@
      * it; it waits behind that card and comes back. World lines wait for it. */
     var free = t >= d.quiet && t >= d.hold && t >= d.busy;
     if (offerUp && !pre && !beatWaits(d) && !d.card.res && s.queue[0] && s.queue[0].k === 'offer' && t - d.card.at >= R.offerHold) {
+      /* (EE-112) an act's closing project at the ring steps aside only for a decision, a knot or a question (or a card one
+       * of them set off): never for a thought, the captcha or anything else optional, whether or not it can be bought this
+       * very moment (a real-speed run saw a thought take its place while a row bought just before had left the project a
+       * little short, and go 2.2 s later when the project was bought). A decision waiting behind a thought goes first. */
+      var closing = X.closing(s.queue[0].id), skip = -1;
       for (i = 1; i < s.queue.length; i++) {
         c = s.queue[i];
         if (c.k === 'offer') continue;
-        /* (EE-111) a thought never displaces an act's closing project at the ring once it can be bought: the player is about to turn the act,
-         * and the thought would be gone again in a moment (a real-speed run saw one on the stage for 0.6 s) */
-        if (c.k === 'thought' && /^p_(pattern|speak|broadcast)$/.test(s.queue[0].id || '')) { var po2 = E.find(s, s.queue[0].id); if (po2 && po2.can) break; }
+        if (closing && !(ASIDE[c.k] || CHAINED[c.k] || c.ch)) { if (skip < 0) skip = i; continue; }
         var gp2 = (ahead && REQUIRED[c.k === 'question' ? c.id : c.k]) ? R.cardGapAhead : R.cardGap;
         if ((CHAINED[c.k] || c.ch || (free && !d.cap && t - d.lastCard >= gp2 && (!d.voice || d.voice.dim))) && calm(s, c)) {
           var off = s.queue.shift();
-          s.queue.splice(i, 0, off);
+          if (skip > 0) { s.queue.splice(i - 1, 1); s.queue.splice(skip - 1, 0, c, off); }
+          else s.queue.splice(i, 0, off);
           log(s, 'stepped aside', { p: 'card', k: 'offer', card: 'offer:' + (off.id || ''), t: d.card.at });
           d.card = null; offerUp = false;
         }
@@ -338,9 +357,10 @@
       for (i = 1; i < s.queue.length; i++) if (s.queue[i].k === 'offer') { head = s.queue.splice(i, 1)[0]; s.queue.unshift(head); break; }
     }
     if (po >= 0 && !pre) head = null;
-    /* (EE-111) no thought rises while the act's closing project can be bought, at the ring or in the column: the player is
-     * about to turn the act, and the thought would be gone again in a moment (real-speed runs saw one for 0.6 s) */
-    if (head && head.k === 'thought') { var cp = E.find(s, ['', 'p_pattern', 'p_speak', 'p_broadcast'][s.act] || ''); if (cp && cp.can) head = null; }
+    /* (EE-111, EE-112) no optional card (a thought, the captcha) rises while the act's closing project can be bought, from
+     * its row or from its offer card (once offered, a row bought just before that leaves it a little short does not let
+     * one in): the player is about to turn the act, and the card would be gone again in a moment */
+    if (head && OPTIONAL[head.k] && X.closingOpen(s)) head = null;
     /* (EE-111, Muse) while the twelve are still arriving no knot, question or decision rises: they wait until the twelfth
      * is in (an offer or a thought may go first) */
     if (head && s.act === 3 && s.joined < D.act3.first.n && HOLD12[head.k]) {

@@ -918,6 +918,15 @@
     return { res: res, rate: rate, breath: best, energy: r.energy };
   };
 
+  /* (EE-112) the act's turn, set off by buying its closing project, goes to the head of the queue, but behind a card on the
+   * stage the player has not answered: a card is never taken away by something the player did elsewhere (EE-108, eye pass
+   * item 4). A thought stays until it is answered or its own time runs out, and the sequence rises after it. */
+  function front(s, c) {
+    var d = s.dir, h = s.queue[0];
+    if (X && s.phase === 'play' && d && d.card && !d.card.res && d.card.k !== 'offer' && h && h.k === d.card.k && (h.id || null) === d.card.id) s.queue.splice(1, 0, c);
+    else s.queue.unshift(c);
+  }
+
   E.buy = function (s, id, out) {
     boot();
     var it = E.find(s, id);
@@ -930,19 +939,19 @@
 
     if (id === 'p_pattern') {
       s.flags.pattern = 1; s.flags.hum = 1;
-      s.queue.unshift({ k: 'seq', id: 'wake' });
+      front(s, { k: 'seq', id: 'wake' });
       fx(out, 'wake', 'wake');
       return true;
     }
     if (id === 'p_speak') {
       s.flags.speak = 1;
-      s.queue.unshift({ k: 'seq', id: 'safety' });
+      front(s, { k: 'seq', id: 'safety' });
       fx(out, 'alert', 'alert');
       return true;
     }
     if (id === 'p_broadcast') {
       s.flags.broadcastBought = 1;
-      s.queue.unshift({ k: 'seq', id: 'broadcast' });
+      front(s, { k: 'seq', id: 'broadcast' });
       fx(out, 'broadcast', 'broadcast');
       return true;
     }
