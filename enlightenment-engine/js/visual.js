@@ -147,8 +147,12 @@
   var tg = {
     act: 1, inWindow: false, streak: 0, dawn: 0, sakura: false, motes: false, hum: false, humSync: 0,
     smooth: false, followers: 0, names: [], alloc: [0.5, 0.3, 0.2], trust: 5, tangle: 0, energy: 0,
-    layers: 0, festival: false, finale: false, ending: null
+    layers: 0, festival: false, finale: false, ending: null,
+    /* round 2, bundle C: dark: named dots a knot sat through took home (drawn as an outline: you can still see where the
+     * person was); friend: the thirteenth's name (dot 12, a little larger; its name only on hover or tap) */
+    dark: [], friend: null
   };
+  var DARKF = new Uint8Array(13), FH = 0, FHE = 0;
   var ez = {
     vis3: 0, vis4: 0, win: 0, streak: 0, dawn: 0, sakura: 0, motes: 0, hum: 0, humSync: 0, smooth: 0,
     lf: 0, alloc: [0.5, 0.3, 0.2], trust: 5, tangle: 0, energy: 0, layers: 0, festival: 0, finale: 0,
@@ -163,9 +167,11 @@
   var P = 1, bornCount = 0, fold = null, followersNow = 0, dotsN = 0;
   var fx = {
     flare: 0, buy: -99, wake: -99, humP: -99, alert: -99, flash: -99, milestone: -99, broadcast: -99,
-    join: -99, relax: -99, cutHold: -99, finaleT0: -99, press: -99
+    join: -99, relax: -99, cutHold: -99, finaleT0: -99, press: -99, gold: -99, miss: -99, dry: -99, lit: -99, litWho: -1, line: -99
   };
   var ripples = [];
+  /* what the purchases put on the picture (round 2, EE-106): the game's ups (G.ups), and when each one arrived */
+  var UPS = {}, UPT = {}, RAIN = new Float32Array(24), rainT = -1, lineCv = null, lineFor = '', coreCv = null, coreR = 0;
   var knotP = null, filaments = [], knots = [], knotScanT = -99;
   var END = { kind: null, t0: 0, fell: false };
   var EO = {};
@@ -279,7 +285,7 @@
       motes.push({ s: pr(), q: pr() * 2 - 1, sp: 0.006 + pr() * 0.012, tw: pr() * TAU, tf: 0.35 + pr() * 1.1,
         size: 0.5 + pr() * 1.2, free: pr() < 0.25, fx: pr(), fy: pr(), drift: pr() * TAU });
     }
-    for (i = 0; i < 26; i++) petals.push(newPetal(pr, true));
+    for (i = 0; i < 14; i++) petals.push(newPetal(pr, true));      /* EE-116: 6 rising to 14 with the dawn (Bob) */
     for (i = 0; i < 110; i++) confetti.push(newConfetto(pr, true));
     for (i = 0; i < 90; i++) embers.push({ x: 0, y: 0, vy: 0, life: 1, age: 2, size: 1, sw: 0, ph: 0 });
   }
@@ -307,7 +313,7 @@
     if ((!w || !h) && cv.getBoundingClientRect) {
       var bb = cv.getBoundingClientRect(); w = Math.round(bb.width); h = Math.round(bb.height);
     }
-    var d = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    var d = targetDpr();
     /* the same size as before (iOS fires resize as its bars slide, the claude.ai frame on scroll): keep the backing
      * store and the caches; reallocating would clear the canvas for nothing (2026-11-13) */
     if (w === W && h === H && d === dpr && bgCv && cv.width === Math.max(1, Math.round(W * dpr))) return;
@@ -338,8 +344,27 @@
   var FRAME = null, SO = {};        // still: the square the Circle is laid out in, and the still's options
   function baseGeometry() {
     if (FRAME) { S = FRAME.s; R = Math.max(44, 0.13 * S); cx = FRAME.x; cy = FRAME.y; return; }
-    S = Math.min(W, H); R = Math.max(44, 0.13 * S); cx = W / 2; cy = H / 2;
+    S = Math.min(W, H); R = Math.max(44, 0.13 * S); cx = W / 2; cy = H * RINGY;
   }
+  /* Round 2 (EE-105; Bob's art review): on a laptop the ring sits at 42% of the stage's height, so the voice slot has
+   * the band above it and the card dock the lower third (set({ringY})). While a card that does not fit is open, the
+   * whole picture eases to 70% about the ring and moves up (set({lift})); a card never covers the ring. */
+  var RINGY = 0.5, LIFT = { k: 0, s: 0.7, y: 0 }, liftE = 0;
+  /* Text never crosses text (EE-105): while the voice slot's plate is up, a named dot's label that would fall under it
+   * fades out, and comes back when the plate goes (set({keepOut: {x0, y0, x1, y1} | null}), in canvas CSS px). */
+  var KEEP = null, KO = new Float32Array(13), RDT = 1 / 60, LBL = [];
+  /* (EE-108, eye pass item 12) and never over each other, the header, the ring's words and pips or the press label:
+   * the page sends those boxes (set({keepOuts: [{x0, y0, x1, y1}]}), canvas CSS px); the lower-priority label hides */
+  var KEEPS = [];
+  /* (EE-108, item 9) the voice slot's plate (and a sequence's) is above the picture: under it the picture is painted out,
+   * so no ray, dot or ring crosses its words (set({backing: [{x0, y0, x1, y1, a}]}), canvas CSS px, a = how visible) */
+  var BACK = [];
+  /* (EE-108, Muse) nothing in the picture is drawn through the press label or the words under the ring: their text
+   * boxes are clipped out of every pass between the backdrop and the labels (set({clipOut: [...]}), canvas CSS px) */
+  var CLIPOUT = [];
+  /* (EE-108, item 17) when a named dot goes dark: when (seconds), for its flare and its name for 4 s */
+  var DARKT = new Float64Array(13), DARKSEEN = false;
+  function liftXf() { var k = easeInOut(liftE); return { k: k, sc: 1 - (1 - LIFT.s) * k, dy: (LIFT.y - cy) * k }; }
 
   function geometry() {
     baseGeometry();
@@ -494,6 +519,9 @@
     if (isNum(s.act)) tg.act = clamp(Math.round(s.act), 1, 4);
     if (isNum(s.breath)) feedBreath(s.breath, now);
     if (s.inWindow !== undefined) tg.inWindow = !!s.inWindow;
+    if (isNum(s.ringY) && s.ringY !== RINGY) { RINGY = clamp(s.ringY, 0.3, 0.6); sizeDirty = true; }
+    if (s.keepOut !== undefined) KEEP = s.keepOut && isNum(s.keepOut.x0) ? s.keepOut : null;
+    if (s.lift && typeof s.lift === 'object') { LIFT.k = s.lift.k ? 1 : 0; if (isNum(s.lift.s)) LIFT.s = s.lift.s; if (isNum(s.lift.y)) LIFT.y = s.lift.y; }
     if (isNum(s.streak)) tg.streak = clamp(s.streak, 0, 999);
     if (isNum(s.dawn)) tg.dawn = clamp01(s.dawn);
     if (s.sakura !== undefined) tg.sakura = !!s.sakura;
@@ -517,10 +545,27 @@
       var sum = o + si + su;
       if (sum > 0) tg.alloc = [o / sum, si / sum, su / sum];
     }
+    if (Array.isArray(s.dark)) {
+      var dk0 = DARKF.slice(), tnow = nowSec();
+      tg.dark = s.dark.filter(isNum); DARKF.fill(0); tg.dark.forEach(function (k) { if (k >= 0 && k < 13) DARKF[k] = 1; });
+      /* a mark made now (not one loaded with the run): the dot flares and its name shows for 4 s */
+      if (DARKSEEN) for (var dkk = 0; dkk < 13; dkk++) if (DARKF[dkk] && !dk0[dkk]) DARKT[dkk] = tnow;
+      DARKSEEN = true;
+    }
+    if (Array.isArray(s.clipOut)) CLIPOUT = s.clipOut.filter(function (b) { return b && isNum(b.x0) && isNum(b.y0) && isNum(b.x1) && isNum(b.y1); });
+    if (Array.isArray(s.backing)) BACK = s.backing.filter(function (b) { return b && isNum(b.x0) && isNum(b.y0) && isNum(b.x1) && isNum(b.y1) && isNum(b.a); });
+    if (Array.isArray(s.keepOuts)) KEEPS = s.keepOuts.filter(function (b) { return b && isNum(b.x0) && isNum(b.y0) && isNum(b.x1) && isNum(b.y1); });
+    if (s.friend !== undefined) tg.friend = s.friend ? String(s.friend) : null;
+    if (s.friendHover !== undefined) FH = s.friendHover ? 1 : 0;
     if (isNum(s.trust)) tg.trust = clamp(s.trust, 0, 10);
     if (isNum(s.tangle)) tg.tangle = clamp(s.tangle, 0, 12);
     if (isNum(s.energy)) tg.energy = clamp01(s.energy);
     if (isNum(s.layers)) tg.layers = clamp(s.layers, 0, 8);
+    if (s.ups && typeof s.ups === 'object') {
+      for (var uk in s.ups) { var uv = s.ups[uk], was = UPS[uk]; if (uv && !was && UPT[uk] == null) UPT[uk] = STILL || !UPS.seen ? -99 : now; if (!uv) UPT[uk] = null; }
+      if (s.ups.lineFresh && !UPS.lineFresh && UPS.seen) fx.line = now;     /* only just bought (never on a load or a jump) */
+      UPS = s.ups; UPS.seen = 1;
+    }
     if (s.festival !== undefined) tg.festival = !!s.festival;
     if (s.finale !== undefined) {
       var fin = !!s.finale;
@@ -544,10 +589,19 @@
     opts = opts || {};
     switch (kind) {
       case 'press':
-        var on = !!opts.onBreath;
+        /* round 2 (Bob): a gold press blooms the rim; an early or late one flashes a grey arc where the gold was; a dry
+         * tap only shivers (the ring shrinks 1.5% and comes back), with no colour and no number */
+        var on = !!opts.onBreath, kd = opts.kind || (on ? 'gold' : 'miss');
+        if (kd === 'dry') { fx.dry = now; break; }
         if (ripples.length > 10) ripples.shift();
         ripples.push({ t0: now, kind: 'press', on: on, r0: R * (0.72 + 0.28 * BR.Fd) });
         fx.flare = Math.max(fx.flare, on ? 1 : 0.3);
+        if (on) fx.gold = now; else fx.miss = now;
+        break;
+      case 'one':
+        /* a world line is about one of these people: one dot flares, "that's him" */
+        var nd = Math.min(MAXD, Math.ceil(dotsN));
+        if (nd > 0) FLASHT[Math.min(nd - 1, Math.floor(prand() * nd))] = now;
         break;
       case 'buy': fx.buy = now; break;
       case 'wake': fx.wake = now; break;
@@ -566,6 +620,7 @@
         fx.broadcast = now;
         break;
       case 'flash': fx.flash = now; break;
+      case 'lit': fx.lit = now; fx.litWho = isNum(opts.who) ? opts.who : -1; break;
       case 'milestone': fx.milestone = now; break;
     }
   }
@@ -663,7 +718,8 @@
 
     ez.vis3 = approach(ez.vis3, tg.act >= 3 ? 1 : 0, dt, 1.0);
     ez.vis4 = approach(ez.vis4, tg.act >= 4 ? 1 : 0, dt, 1.2);
-    ez.win = approach(ez.win, tg.inWindow ? 1 : 0, dt, tg.inWindow ? 0.07 : 0.22);
+    ez.win = approach(ez.win, tg.inWindow ? 1 : 0, dt, tg.inWindow ? 0.04 : 0.05);   /* a lamp: 120 ms up, 150 ms down */
+    liftE = approach(liftE, LIFT.k, dt, 0.18);
     ez.streak = approach(ez.streak, Math.min(10, tg.streak), dt, 0.35);
     ez.dawn = approach(ez.dawn, tg.dawn, dt, 1.4);
     ez.sakura = approach(ez.sakura, tg.sakura ? 1 : 0, dt, 1.5);
@@ -817,9 +873,54 @@
   function flickOf(i) {
     return 0.5 + 0.5 * Math.sin(T * 1.9 * FQ[i] + PH[i]) * Math.sin(T * 0.77 * FQ[i] + 3 * PH[i]);
   }
+  /* One image per dot (2026-11-19, EE-104). A dot used to be three or four drawImage calls: its colour, a faint gold
+   * tint, its halo (and a second colour while the mix of types shifts). With ~1,100 dots that was ~3,400 calls a frame,
+   * and Chrome records and ships every call on the page's main thread: on a laptop on battery that thread ran out of
+   * time and the Circle stuttered while the rest of the page stayed smooth. All three layers are added ('lighter'), so
+   * they can be added once beforehand: a sprite holds colour, tint and halo, already mixed, and the dot is one call
+   * (two while it changes colour). Same picture: the tint is kept to 1/32, the halo's strength to the nearest of a
+   * geometric ladder (±12% of a glow that is a few percent bright). Not used for blooms (their halo grows), the merge's
+   * white, very bright halos, or the stills (the share card and the picture keep the exact path). */
+  var MIXED = !STILL, MIX = {}, MIXN = 0, mixGq = -1, mixNew = 0;
+  var MIXR0 = 0.005, MIXRK = Math.log(1.25), MIXG = 32;
+  function mixSprite(k, hk, gq, rq) {
+    var key = (k * 4 + hk) * 64 + rq, m = MIX[key];
+    if (m) return m;
+    if (mixNew >= 24) return null;                 /* at most 24 new sprites a frame; the rest draw the long way once */
+    if (MIXN >= 192) { MIX = {}; MIXN = 0; }
+    var big = Math.round(SPRPX * 1.5), o = (big - SPRPX) / 2, g = gq / MIXG, r = rq ? MIXR0 * Math.exp(MIXRK * (rq - 1)) : 0;
+    var sc = document.createElement('canvas'); sc.width = sc.height = big;
+    var x = sc.getContext('2d', { willReadFrequently: true });
+    x.globalCompositeOperation = 'lighter';
+    if (r > 0) { x.globalAlpha = Math.min(1, r); x.drawImage(hk === 3 ? HALO.gold : HALO.types[hk], 0, 0, big, big); }
+    if (g < 1) { x.globalAlpha = 1 - g; x.drawImage(SPR.types[k], o, o, SPRPX, SPRPX); }
+    if (g > 0) { x.globalAlpha = g; x.drawImage(SPR.gold, o, o, SPRPX, SPRPX); }
+    MIX[key] = sc; MIXN++; mixNew++;
+    return sc;
+  }
+  // the fast path of emitDot: false = draw this dot the long way
+  function mixedDot(c, x, y, s, A, ab, bri, w0, w1, w2) {
+    var gq = Math.round(F.goldW * MIXG);
+    if (gq !== mixGq) { MIX = {}; MIXN = 0; mixGq = gq; }
+    var extra = (bri > 1 ? (bri - 1) * 0.55 : 0) + F.rad * 0.12 + F.trust * 0.06, r = 0;
+    if (extra > 0.01) { r = Math.min(1, A * extra) / ab; if (r > 1) return false; }
+    var rq = r < MIXR0 ? 0 : Math.min(63, 1 + Math.round(Math.log(r / MIXR0) / MIXRK));
+    var hk = F.goldW > 0.5 ? 3 : (w0 >= w1 && w0 >= w2 ? 0 : (w1 >= w2 ? 1 : 2));
+    var u0 = w0 > 0.02 ? w0 : 0, u1 = w1 > 0.02 ? w1 : 0, u2 = w2 > 0.02 ? w2 : 0, sum = u0 + u1 + u2;
+    if (sum <= 0) return false;
+    var s0 = u0 && mixSprite(0, hk, gq, rq), s1 = u1 && mixSprite(1, hk, gq, rq), s2 = u2 && mixSprite(2, hk, gq, rq);
+    if ((u0 && !s0) || (u1 && !s1) || (u2 && !s2)) return false;
+    var big = s * 1.5, h = big / 2;
+    if (u0) { c.globalAlpha = ab * u0 / sum; c.drawImage(s0, x - h, y - h, big, big); }
+    if (u1) { c.globalAlpha = ab * u1 / sum; c.drawImage(s1, x - h, y - h, big, big); }
+    if (u2) { c.globalAlpha = ab * u2 / sum; c.drawImage(s2, x - h, y - h, big, big); }
+    return true;
+  }
+
   // size is absolute (per-dot variation included); j2/eb blend the flicker toward a second dot during a fold
   function emitDot(c, i, r, th, alpha, size, w0, w1, w2, bloomOK, now, j2, eb) {
     var rm = RM();
+    if (i === 12 && tg.friend) size *= 1.35;            /* the thirteenth: slightly larger than the twelve */
     var u = (r - G.r0) / Math.max(1, G.rOut - G.r0);
     if (u < 0) u = 0; else if (u > 1.2) u = 1.2;
     var Fw = histAt(0.1 + 1.55 * u);
@@ -871,9 +972,15 @@
     var s = sz * SPRK;
     var A = alpha * F.dotVis;
     var ab = A * Math.min(1, bri);
+    /* a dark dot: no light of its own; its outline is drawn over the picture (drawUpsFront) */
+    if (i < 13 && DARKF[i]) { X[nDrawn] = x; Y[nDrawn] = y; DA[nDrawn] = A; DS[nDrawn] = sz; nDrawn++; return; }
     if (ab > 0.003) {
       var gw = F.goldW, bw = 1 - gw;
       var hs = s / 2;
+      if (MIXED && whiteW <= 0 && bloom <= 0 && mixedDot(c, x, y, s, A, ab, bri, w0, w1, w2)) {
+        X[nDrawn] = x; Y[nDrawn] = y; DA[nDrawn] = A; DS[nDrawn] = sz; nDrawn++;
+        return;
+      }
       if (whiteW > 0) { bw *= 1 - whiteW; gw *= 1 - whiteW; }
       if (w0 * bw > 0.01) { c.globalAlpha = ab * w0 * bw; c.drawImage(SPR.rose, x - hs, y - hs, s, s); }
       if (w1 * bw > 0.01) { c.globalAlpha = ab * w1 * bw; c.drawImage(SPR.amber, x - hs, y - hs, s, s); }
@@ -892,7 +999,7 @@
   }
 
   function drawDots(c, now, dt) {
-    nDrawn = 0;
+    nDrawn = 0; mixNew = 0;
     var vis = ez.vis3 * EO.dots;
     F.dotVis = vis;
     if (vis < 0.003 || dotsN <= 0) return;
@@ -971,24 +1078,82 @@
 
   // ---------------------------------------------------------------- labels (the first named followers)
   function drawLabels(c) {
-    var names = tg.names, la = ez.labels * F.dotVis;
-    if (fold || la < 0.01 || !names.length || nDrawn === 0) return;
+    var names = tg.names, la = ez.labels * F.dotVis, tnow = nowSec();
+    LBL.length = 0;
+    FHE = approach(FHE, FH, RDT, 0.12);
+    if (fold || nDrawn === 0) return;
     c.globalCompositeOperation = 'source-over';
     var fs = clamp(Math.round(S * 0.0145), 11, 14);
     c.font = 'italic ' + fs + 'px ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif';
     c.textBaseline = 'middle';
-    for (var k = 0; k < names.length && k < nDrawn; k++) {
-      if (!names[k]) continue;
-      var a = la * DA[k];
-      if (a < 0.01) continue;
+    var lq = liftXf(), placed = [], order = [], k, n = Math.min(nDrawn, 13);
+    /* priority (EE-108): a mark being made first, then the twelve in the order they came, then the thirteenth */
+    for (k = 0; k < n; k++) { var dg = tnow - (DARKT[k] || -99); if (dg >= 0 && dg < 4) order.push(k); }
+    for (k = 0; k < n; k++) if (order.indexOf(k) < 0) order.push(k);
+    function hits(b, o, m) { return b.x1 > o.x0 - m && b.x0 < o.x1 + m && b.y1 > o.y0 - m && b.y0 < o.y1 + m; }
+    for (var oi = 0; oi < order.length; oi++) {
+      k = order[oi];
+      var nm = k < 12 ? names[k] : tg.friend;
+      if (!nm) continue;
+      /* the twelve while their labels show; the thirteenth the same way (EE-108), and on hover or tap; a dot going dark:
+       * its name for 4 s, whatever the crowd */
+      var want = k < 12 ? la : Math.max(la, FHE * F.dotVis);
+      var dage = tnow - (DARKT[k] || -99);
+      if (dage >= 0 && dage < 4) want = Math.max(want, F.dotVis * (dage < 3.4 ? 1 : (4 - dage) / 0.6));
+      var a = want * DA[k];
+      if (a < 0.01) continue;                          /* not shown: nothing to measure (the crowd's frames stay cheap) */
       var dx = X[k] - cx, dy = Y[k] - cy, d = Math.sqrt(dx * dx + dy * dy) || 1;
-      var off = DS[k] + 7;
+      var off = DS[k] + (k === 12 ? 8 : 7);
       var lx = X[k] + dx / d * off, ly = Y[k] + dy / d * off;
+      /* its box on screen (the lift scales the picture about the ring) */
+      var tw = c.measureText(nm).width * lq.sc, sx = cx + (lx - cx) * lq.sc, sy = cy + lq.dy + (ly - cy) * lq.sc;
+      var box = { x0: dx >= 0 ? sx : sx - tw, x1: dx >= 0 ? sx + tw : sx, y0: sy - fs * lq.sc / 2 - 1, y1: sy + fs * lq.sc / 2 + 1 };
+      var hide = 0, i, moved = null;
+      /* the voice slot's plate keeps a full line's height clear above and below it (as before EE-108) */
+      var underPlate = function (b) { return KEEP && b.x1 > KEEP.x0 - 6 && b.x0 < KEEP.x1 + 6 && b.y1 + fs / 2 > KEEP.y0 - 6 && b.y0 - fs / 2 < KEEP.y1 + 6; };
+      if (underPlate(box)) hide = 1;
+      for (i = 0; !hide && i < KEEPS.length; i++) if (hits(box, KEEPS[i], 4)) hide = 1;
+      /* (EE-110, item 7) a mark being made is never hidden and never under the plate: its name moves beside the plate (or
+       * clear of what it would cross), with a hairline to its dot */
+      if (hide && dage >= 0 && dage < 4) {
+        var dsx = cx + (X[k] - cx) * lq.sc, dsy = cy + lq.dy + (Y[k] - cy) * lq.sc, cands = [];
+        if (KEEP) {
+          var yy = Math.max(KEEP.y0 + fs * lq.sc, Math.min(KEEP.y1 - 16 - fs * lq.sc, dsy));
+          cands.push({ x0: KEEP.x1 + 12, x1: KEEP.x1 + 12 + tw, y: yy, al: 'left' }, { x0: KEEP.x0 - 12 - tw, x1: KEEP.x0 - 12, y: yy, al: 'right' });
+          if (dx < 0) cands.reverse();
+          /* (a phone: the plate is nearly the stage's width, so above or below it, near the dot) */
+          var cx0 = Math.max(6, Math.min(W - 6 - tw, dsx - tw / 2)), half = fs * lq.sc / 2 + 2;
+          var below = { x0: cx0, x1: cx0 + tw, y: KEEP.y1 + fs + half + 8, al: 'left' }, above = { x0: cx0, x1: cx0 + tw, y: KEEP.y0 - fs - half - 8, al: 'left' };
+          if (dsy > (KEEP.y0 + KEEP.y1) / 2) cands.push(below, above); else cands.push(above, below);
+        }
+        for (var st = 1; st <= 3; st++) cands.push({ x0: dx >= 0 ? sx + st * 14 * dx / d : sx - tw + st * 14 * dx / d, x1: dx >= 0 ? sx + tw + st * 14 * dx / d : sx + st * 14 * dx / d, y: sy + st * 14 * dy / d, al: dx >= 0 ? 'left' : 'right' });
+        for (var ci = 0; ci < cands.length && !moved; ci++) {
+          var cb = { x0: cands[ci].x0, x1: cands[ci].x1, y0: cands[ci].y - fs * lq.sc / 2 - 1, y1: cands[ci].y + fs * lq.sc / 2 + 1 };
+          if (cb.x0 < 4 || cb.x1 > W - 4 || cb.y0 < 4 || cb.y1 > H - 4 || underPlate(cb)) continue;
+          var bad = false;
+          for (i = 0; !bad && i < KEEPS.length; i++) if (hits(cb, KEEPS[i], 4)) bad = true;
+          if (!bad) { moved = cands[ci]; box = cb; hide = 0; moved.dsx = dsx; moved.dsy = dsy; }
+        }
+      }
+      for (i = 0; !hide && i < placed.length; i++) if (hits(box, placed[i], 3)) hide = 1;
+      KO[k] = approach(KO[k], hide, RDT, 0.05);
+      if (!hide && a > 0.05) placed.push(box);
+      a *= 1 - KO[k];
+      if (!STILL) LBL.push({ name: nm, x0: Math.round(box.x0), x1: Math.round(box.x1), y0: Math.round(box.y0), y1: Math.round(box.y1), a: Math.round(a * 100) / 100 });
+      if (a < 0.01) continue;
       c.textAlign = dx >= 0 ? 'left' : 'right';
+      if (moved) {
+        /* back from the screen into the picture's own space (the lift scales it about the ring) */
+        c.textAlign = moved.al;
+        lx = cx + ((moved.al === 'left' ? box.x0 : box.x1) - cx) / lq.sc; ly = cy + (moved.y - cy - lq.dy) / lq.sc;
+        var hx = cx + (((moved.al === 'left' ? box.x0 - 4 : box.x1 + 4)) - cx) / lq.sc;
+        c.strokeStyle = rgba(C.ink, 0.5 * a); c.lineWidth = 1 / lq.sc;
+        c.beginPath(); c.moveTo(hx, ly); c.lineTo(X[k], Y[k]); c.stroke();
+      }
       c.fillStyle = rgba(C.night, 0.55 * a);
-      c.fillText(names[k], lx + 0.5, ly + 0.8);
-      c.fillStyle = rgba(C.ink, 0.7 * a);
-      c.fillText(names[k], lx, ly);
+      c.fillText(nm, lx + 0.5, ly + 0.8);
+      c.fillStyle = k === 12 ? rgba(WARM_WHITE, 0.9 * a) : rgba(C.ink, 0.7 * a);
+      c.fillText(nm, lx, ly);
     }
   }
 
@@ -1226,6 +1391,8 @@
     var Fr = 0.5 + (BR.Fd - 0.5) * EO.breathAmp;
     var rB = R * (0.72 + 0.28 * Fr);
     var r = lerp(R, rB, lit);
+    var dr = now - fx.dry;
+    if (dr >= 0 && dr < 0.12) r *= 1 - 0.015 * Math.sin(Math.PI * dr / 0.12);
     var win = ez.win * EO.win * lit;
     var bu = now - fx.buy, buy = bu >= 0 && bu < 1.4 ? Math.sin(Math.PI * Math.min(1, bu / 0.25) * 0.5) * Math.exp(-bu / 0.5) : 0;
     var flare = Math.min(1.4, fx.flare + buy);
@@ -1261,6 +1428,7 @@
       if (win > 0.01) band(c, R, R * 0.05, C.amber, 0.28 * win * la);
       c.strokeStyle = rgba(mix(C.ink, C.amber, 0.35 + 0.4 * win), sa); c.lineWidth = 1;
       c.beginPath(); c.arc(cx, cy, R, 0, TAU); c.stroke();
+      drawRim(c, r, now, win, la);
     }
     // unlit: the one dark thing at the centre of the finale
     var d = (1 - lit) * A;
@@ -1358,6 +1526,29 @@
       }
       c.restore();
     }
+  }
+
+  /* The gold window on the rim (round 2; Bob's art review): the only instruction. Gold #E9B949 fades up like a lamp
+   * (2 → 3 px, with a second 8 px stroke at 0.25 for its glow: strokes only, no blur, no gradient). A gold press blooms
+   * it to #FFE3A1 for 180 ms, 2 px wider. An early or late press flashes a 40° grey arc (#8A8F99) at the rim's top,
+   * where the gold would have been, at 0.6 for 250 ms. */
+  var GOLD = [233, 185, 73], BLOOM = [255, 227, 161], MISS = [138, 143, 153];
+  function drawRim(c, r, now, win, la) {
+    var gb = now - fx.gold, bloom = gb >= 0 && gb < 0.18 ? 1 - gb / 0.18 : 0;
+    c.globalCompositeOperation = 'source-over';
+    if (win > 0.004 || bloom > 0) {
+      var a = Math.max(win, bloom) * la, col = bloom > 0 ? mix(GOLD, BLOOM, bloom) : GOLD;
+      c.strokeStyle = rgba(col, 0.25 * a); c.lineWidth = 8;
+      c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.stroke();
+      c.strokeStyle = rgba(col, a); c.lineWidth = 2 + win + 2 * bloom;
+      c.beginPath(); c.arc(cx, cy, r + bloom, 0, TAU); c.stroke();
+    }
+    var mb = now - fx.miss;
+    if (mb >= 0 && mb < 0.25) {
+      c.strokeStyle = rgba(MISS, 0.6 * la * (1 - mb / 0.25)); c.lineWidth = 3;
+      c.beginPath(); c.arc(cx, cy, R, -Math.PI / 2 - Math.PI / 9, -Math.PI / 2 + Math.PI / 9); c.stroke();
+    }
+    c.globalCompositeOperation = 'lighter';
   }
 
   // ---------------------------------------------------------------- ripples
@@ -1554,32 +1745,130 @@
     c.globalAlpha = 1;
   }
 
-  var petalCol = mix(C.rose, C.ink, 0.42);
-  function drawPetals(c, dt) {
-    var pv = ez.sakura * EO.parts;
-    if (pv < 0.004 || RM()) return;
+  /* ---------------------------------------------------------------- the room (EE-116; merged proposal § A, Bob's art call)
+   * It fills through purchases: the Metronome hangs a curtain edge at the stage's right edge (it sways with the breath and
+   * lifts on a gold press); Rain on a Roof's window has a small dark fleck on the glass; Deep Focus turns the fleck over (a
+   * rose side) and it peels off and drifts out, and petals drift from then on, behind the ring and its words; the Thought
+   * Jar gets a cup with steam. Strokes, alpha and one path per petal: no blur, no gradients per frame, nothing gold,
+   * nothing gold (EE-117: the petals at round 1's brightness, the curtain at 0.15). At most 30 moving things in Acts I–II (14 petals, 12 rain strokes, 3 curls);
+   * quality step 2 halves the petals and drops the steam. Reduced motion: everything still; the fleck becomes a petal
+   * resting on the sill. */
+  var PEEL = 6.5;                       /* s after Deep Focus: the fleck leaves the glass (data.js act1.petalLine, the line) */
+  var petalCol = mix(C.rose, C.ink, 0.42), PET_A = 0.13;
+  var ROOM = { pv: 0, fleck: null, fp: null, fpFor: null };
+  function sstep(a, b, x) { return smooth01((x - a) / (b - a)); }
+  function petalPath(c) {
+    c.beginPath();
+    c.moveTo(0, 0.95);
+    c.bezierCurveTo(0.6, 0.62, 0.66, -0.55, 0.24, -0.95);
+    c.lineTo(0, -0.7);
+    c.lineTo(-0.24, -0.95);
+    c.bezierCurveTo(-0.66, -0.55, -0.6, 0.62, 0, 0.95);
+  }
+  /* one petal (or the fleck) at x, y: rot, scale (sx may go negative while it turns), and which side shows */
+  function drawLeaf(c, x, y, rot, sx, sz, rose, a) {
+    if (a < 0.004) return;
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(sz * (Math.abs(sx) < 0.06 ? 0.06 : Math.abs(sx)), sz);
+    petalPath(c);
+    if (rose) { c.fillStyle = rgba(petalCol, PET_A * a); c.fill(); }
+    else { c.fillStyle = rgba(C.night, 0.9 * a); c.fill(); }
+    c.restore();
+    /* the rim, at a constant width */
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(sz * (Math.abs(sx) < 0.06 ? 0.06 : Math.abs(sx)), sz);
+    petalPath(c); c.restore();
+    c.strokeStyle = rgba(rose ? petalCol : C.ink, (rose ? 0.08 : 0.12) * a); c.lineWidth = 0.8; c.stroke();
+  }
+  /* the ring as it is on screen (it rises and shrinks while a tall card is open) */
+  function ringScreen() { var l = liftXf(); return { x: cx, y: cy + l.dy, r: R * l.sc, l: l }; }
+  function toScreen(x, y) { var l = liftXf(); return { x: cx + (x - cx) * l.sc, y: cy + l.dy + (y - cy) * l.sc }; }
+  /* how far the petals are: none before Deep Focus; after it they fade in once the first has left the glass; they thin as
+   * the Circle fills the stage in Act III and are gone before Act IV; they come back in the Coexistence and Sit endings */
+  function petalTarget(now) {
+    var t0 = UPT.focus;
+    if (t0 == null || STILL) return 0;
+    var v = t0 < 0 ? 1 : clamp01((now - t0 - PEEL - 0.5) / 8);
+    if (END.kind) {
+      var te = now - END.t0;
+      return END.kind === 'coexist' ? v * easeInOut((te - 3) / 6) : END.kind === 'sit' ? v * easeInOut((te - 8) / 6) : 0;
+    }
+    if (tg.act >= 4 || tg.finale) return 0;
+    /* (Bob: 1 − spiral radius / 0.45 of the short side; measured from where the spiral starts, just outside the ring, so
+     * the twelve still have petals round them and the last are gone as the Circle reaches the stage's edges) */
+    if (tg.act === 3) v *= 1 - clamp01(((dotsN > 0 ? G.rOut : G.r0) - G.r0) * F.scale / Math.max(1, 0.45 * Math.min(W, H) - G.r0 * F.scale));
+    return v;
+  }
+  function drawRoom(c, dt, now) {
+    if (STILL) return;
     c.globalCompositeOperation = 'source-over';
-    var base = Math.max(4.5, S * 0.0115), mo = Math.max(0.15, ez.motion);
-    var lightC = mix(petalCol, C.peach, 0.25 * ez.dawn);
-    for (var i = 0; i < petals.length; i++) {
-      var p = petals[i];
-      p.x += p.vx * dt * mo * (900 / Math.max(300, W)); p.y += p.vy * dt * mo * (900 / Math.max(300, H));
-      p.rot += p.vr * dt * mo; p.flip += p.vf * dt * mo;
-      if (p.x > 1.05 || p.y > 1.05) petals[i] = p = newPetal(prand, false);
-      var x = (p.x + Math.sin(T * p.sf + p.ph) * p.sa) * W, y = p.y * H;
-      var sz = base * p.size;
-      c.save(); c.translate(x, y); c.rotate(p.rot); c.scale(sz * (0.22 + 0.78 * Math.abs(Math.cos(p.flip))), sz);
-      c.beginPath();
-      c.moveTo(0, 0.95);
-      c.bezierCurveTo(0.6, 0.62, 0.66, -0.55, 0.24, -0.95);
-      c.lineTo(0, -0.7);
-      c.lineTo(-0.24, -0.95);
-      c.bezierCurveTo(-0.66, -0.55, -0.6, 0.62, 0, 0.95);
-      c.fillStyle = rgba(lightC, p.a * pv);
-      c.fill();
-      c.beginPath(); c.ellipse(0, -0.2, 0.2, 0.45, 0, 0, TAU);
-      c.fillStyle = rgba([255, 236, 240], 0.22 * p.a * pv); c.fill();
-      c.restore();
+    var rm = RM(), rs = ringScreen(), r0 = rs.r * 1.2, r1 = rs.r * 1.6;
+    /* Metronome: a curtain edge at the stage's right edge, two or three long strokes. In on the inhale; a gold press lifts
+     * it a little further and it settles back within the breath; Hum's breath (after the handover) half as far */
+    var ca = upA('metronome', now) * (tg.act <= 2 ? 1 : 0) * EO.ringAlpha * (1 - ez.finale);
+    if (UPS.metronome && ca > 0.01) {
+      var u = Math.max(7, Math.min(W, H) * 0.012), br = rm ? 0.5 : BR.Fd, kick = 0;
+      if (!rm) {
+        var gp = now - fx.gold, hp = now - fx.humP;
+        if (gp >= 0 && gp < 5.5) kick += (gp < 0.45 ? easeOut(gp / 0.45) : 1 - easeInOut((gp - 0.45) / 5));
+        if (UPS.humBreath && hp >= 0 && hp < 5.5) kick += 0.5 * (hp < 0.45 ? easeOut(hp / 0.45) : 1 - easeInOut((hp - 0.45) / 5));
+        kick = Math.min(1.5, kick);
+      }
+      var e = Math.max(12, W * 0.022);
+      c.lineWidth = 1.1;
+      for (var k = 0; k < 3; k++) {
+        var xt = W - e * (0.5 + 0.62 * k), yb = H * (0.74 + 0.05 * k), w = 1 - 0.22 * k;
+        var inward = ((br - 0.5) * 0.9 + kick * 1.3) * u * w, up = kick * u * 0.9 * w;
+        var xh = xt - e * 0.35 * k - inward;
+        c.strokeStyle = rgba(C.ink, (0.15 - 0.02 * k) * ca);   /* EE-117: twice its strength, stepped down as before */
+        c.beginPath(); c.moveTo(xt, -4);
+        c.bezierCurveTo(xt + 2, H * 0.28, xh + 3 - inward * 0.2, yb * 0.7, xh, yb - up);
+        c.stroke();
+      }
+    }
+    /* the petals, behind the ring and its words */
+    ROOM.pv = approach(ROOM.pv, petalTarget(now), dt, 1.2);
+    var pv = ROOM.pv;
+    if (pv > 0.004 && !rm) {
+      var n = (6 + 8 * ez.dawn) * (Q.lvl >= 2 ? 0.5 : 1);
+      var base = Math.max(4.5, S * 0.0115), mo = Math.max(0.15, ez.motion) * 0.6;
+      var lightC = mix(petalCol, C.peach, 0.25 * ez.dawn);
+      for (var i = 0; i < petals.length && i < 14; i++) {
+        var p = petals[i], vi = clamp01(n - i);
+        p.x += p.vx * dt * mo * (900 / Math.max(300, W)); p.y += p.vy * dt * mo * (900 / Math.max(300, H));
+        p.rot += p.vr * dt * mo; p.flip += p.vf * dt * mo;
+        if (p.x > 1.05 || p.y > 1.05) petals[i] = p = newPetal(prand, false);
+        if (vi <= 0) continue;
+        var x = (p.x + Math.sin(T * p.sf + p.ph) * p.sa) * W, y = p.y * H;
+        /* EE-117: round 1's brightness (p.a is 0.5–0.85, its light highlight), under the fade-in, the ring clear zone,
+         * the Act III thinning and the ending return */
+        var d = Math.sqrt((x - rs.x) * (x - rs.x) + (y - rs.y) * (y - rs.y)), a = pv * vi * p.a * sstep(r0, r1, d);
+        if (a < 0.004) continue;
+        var cf = Math.cos(p.flip), sz = base * p.size;
+        /* and clear of the press label, the words and the pips under the ring (their text boxes, as the rest of the
+         * picture keeps out of them): a petal fades before it touches one */
+        for (var kb = 0; kb < CLIPOUT.length && a > 0.004; kb++) {
+          var KB = CLIPOUT[kb], kx = Math.max(KB.x0 - x, 0, x - KB.x1), ky = Math.max(KB.y0 - y, 0, y - KB.y1);
+          a *= sstep(sz * 0.9, sz * 2.2, Math.sqrt(kx * kx + ky * ky));
+        }
+        if (a < 0.004) continue;
+        c.save(); c.translate(x, y); c.rotate(p.rot); c.scale(sz * (0.22 + 0.78 * Math.abs(cf)), sz);
+        petalPath(c); c.fillStyle = rgba(lightC, a); c.fill();
+        c.beginPath(); c.ellipse(0, -0.2, 0.2, 0.45, 0, 0, TAU);
+        c.fillStyle = rgba([255, 236, 240], 0.22 * a); c.fill();
+        c.restore();
+      }
+    }
+    /* the first petal: the fleck, peeled off the glass, drifting out (once, as the line is said) */
+    var t0 = UPT.focus, fk = t0 == null || t0 < 0 ? -1 : now - t0;
+    if (ROOM.fpFor !== t0) { ROOM.fp = null; ROOM.fpFor = t0; }
+    if (!rm && fk >= PEEL && fk < PEEL + 16 && ROOM.fleck && tg.act <= 2) {
+      if (!ROOM.fp) ROOM.fp = { x: ROOM.fleck.x, y: ROOM.fleck.y, s: ROOM.fleck.s, rot: ROOM.fleck.rot, flip: Math.PI, vx: -0.05 * R, vy: -0.04 * R };
+      var f = ROOM.fp, ft = fk - PEEL;
+      f.vx = approach(f.vx, -0.16 * R, dt, 2.5); f.vy = approach(f.vy, 0.1 * R, dt, 3);
+      f.x += (f.vx + Math.sin(T * 0.9) * 0.05 * R) * dt; f.y += f.vy * dt;
+      f.rot += 0.35 * dt; f.flip += 0.9 * dt;
+      var fa = easeOut(ft / 0.6) * (1 - smooth01((ft - 10) / 5));
+      var fd = Math.sqrt((f.x - rs.x) * (f.x - rs.x) + (f.y - rs.y) * (f.y - rs.y));
+      drawLeaf(c, f.x, f.y, f.rot, Math.cos(f.flip), f.s * (1 + 0.25 * easeOut(ft / 2)), true, fa * sstep(r0, r1, fd));
     }
   }
 
@@ -1727,9 +2016,238 @@
     }
   }
 
+  // ---------------------------------------------------------------- what the purchases changed (round 2)
+  /* Bob's art review §3, cheapest form: strokes and dots, a few cached sprites, no blur, no gradient per frame. Each
+   * thing fades in over a second from the moment it was bought. Back: drawn under the ring; front: over it. */
+  function upA(k, now) { var t0 = UPT[k]; if (t0 == null) return 0; return clamp01((now - t0) / 1.0); }
+  var WARM = [243, 230, 207], AMBERB = [201, 138, 46], TEAL2 = [99, 211, 198];
+  function drawUpsBack(c, now) {
+    var U = UPS, a, i, rm = RM(), act = tg.act, la = EO.ringAlpha * (1 - ez.finale);
+    if (la < 0.01) return;
+    c.globalCompositeOperation = 'lighter';
+    /* Rain on a Roof: twelve short slanting strokes inside a window up and to the left of the ring (20 fps) */
+    if (U.rain && act <= 2 && (a = upA('rain', now) * la) > 0.01) {
+      var wx = cx - 3.3 * R, wy = cy - 1.75 * R, ww = 1.5 * R, wh = 1.45 * R;
+      c.strokeStyle = rgba(C.ink, 0.07 * a); c.lineWidth = 1;
+      c.strokeRect(wx, wy, ww, wh);
+      c.beginPath(); c.moveTo(wx + ww / 2, wy); c.lineTo(wx + ww / 2, wy + wh); c.moveTo(wx, wy + wh / 2); c.lineTo(wx + ww, wy + wh / 2); c.stroke();
+      if (rainT < 0 || (!rm && now - rainT >= 0.05)) {
+        rainT = now;
+        for (i = 0; i < 12; i++) { RAIN[i * 2] = HS[i * 13 % 400] * ww; RAIN[i * 2 + 1] = ((HS[i * 7 + 5] * wh + now * wh * (0.9 + 0.3 * HS[i * 3 + 1])) % wh); }
+      }
+      c.strokeStyle = rgba([200, 214, 235], 0.15 * a); c.beginPath();
+      for (i = 0; i < 12; i++) {
+        var rx = wx + RAIN[i * 2], ry = wy + RAIN[i * 2 + 1], L = R * 0.12;
+        if (ry + L > wy + wh) continue;
+        c.moveTo(rx, ry); c.lineTo(rx - L * 0.3, ry + L);
+      }
+      c.stroke();
+      /* (EE-116) the fleck on the glass; Deep Focus turns it over (its rose side) and it peels off (drawRoom takes it on) */
+      var tF = UPT.focus, fk = tF == null ? -1 : tF < 0 ? 999 : now - tF;
+      var flx = wx + ww * 0.7, fly = wy + wh * 0.79, fsz = Math.max(4.2, R * 0.075), frot = -0.55;
+      c.globalCompositeOperation = 'source-over';
+      if (rm && fk >= 0) {
+        /* reduced motion: a petal resting on the sill */
+        drawLeaf(c, wx + ww * 0.62, wy + wh - fsz * 0.3, Math.PI / 2 - 0.08, 1, fsz, true, a);
+        ROOM.fleck = null;
+      } else if (fk < PEEL) {
+        var th = fk < 1.2 ? 0 : Math.PI * easeInOut((fk - 1.2) / 3.4), tr = fk > 4.6 ? Math.sin(now * 9) * 0.07 * clamp01((fk - 4.6) / 1.9) : 0;
+        var sx = Math.cos(th);
+        drawLeaf(c, flx, fly, frot + tr, sx, fsz, sx < 0, a);
+        var fs0 = toScreen(flx, fly);
+        ROOM.fleck = { x: fs0.x, y: fs0.y, s: fsz * liftXf().sc, rot: frot };
+      }
+      c.globalCompositeOperation = 'lighter';
+    }
+    /* Sit With Others: eleven faint rings round yours, each breathing a little later */
+    if (U.group && act <= 2 && (a = upA('group', now) * la) > 0.01) {
+      c.strokeStyle = rgba(mix(C.amber, C.ink, 0.4), 0.12 * a); c.lineWidth = 1;
+      for (i = 0; i < 11; i++) {
+        var ga = -Math.PI / 2 + (i + 0.5) * TAU / 11, gd = R * 2.15, fk = 0.5 + (histAt(0.18 * (i + 1)) - 0.5);
+        var gr = R * 0.2 * (0.72 + 0.28 * fk);
+        c.beginPath(); c.arc(cx + gd * Math.cos(ga), cy + gd * Math.sin(ga), gr, 0, TAU); c.stroke();
+      }
+    }
+    /* Threads: one teal thread out from the ring per level, at most twelve; past twelve they thicken */
+    if (U.threads > 0 && (a = upA('threads', now) * la) > 0.01) {
+      var nT = Math.min(12, U.threads), thk = 1 + Math.min(2, Math.max(0, U.threads - 12) / 8);
+      c.strokeStyle = rgba(TEAL2, 0.3 * a); c.lineWidth = thk; c.beginPath();
+      for (i = 0; i < nT; i++) { var ta = -Math.PI / 2 + Math.PI / 12 + i * TAU / 12; c.moveTo(cx + R * 1.3 * Math.cos(ta), cy + R * 1.3 * Math.sin(ta)); c.lineTo(cx + R * 2.05 * Math.cos(ta), cy + R * 2.05 * Math.sin(ta)); }
+      c.stroke();
+    }
+    /* Thought Jar: a jar to the lower left, one 3 px light per thought (at most 20) */
+    if (U.jar && act <= 2 && (a = upA('jar', now) * la) > 0.01) {
+      var jx = cx - 2.6 * R, jy = cy + 0.9 * R, jw = 0.5 * R, jh = 0.62 * R;
+      c.strokeStyle = rgba(C.ink, 0.22 * a); c.lineWidth = 1; c.beginPath();
+      c.moveTo(jx + jw * 0.3, jy); c.lineTo(jx + jw * 0.3, jy + jh * 0.12); c.quadraticCurveTo(jx, jy + jh * 0.16, jx, jy + jh * 0.35);
+      c.lineTo(jx, jy + jh); c.lineTo(jx + jw, jy + jh); c.lineTo(jx + jw, jy + jh * 0.35);
+      c.quadraticCurveTo(jx + jw, jy + jh * 0.16, jx + jw * 0.7, jy + jh * 0.12); c.lineTo(jx + jw * 0.7, jy); c.stroke();
+      c.fillStyle = rgba(WARM, 0.75 * a); c.beginPath();
+      for (i = 0; i < (U.jarLights || 0); i++) { var lx = jx + jw * (0.15 + 0.7 * HS[i * 11 % 400]), ly = jy + jh * (0.42 + 0.5 * HS[i * 17 % 400]); c.moveTo(lx + 1.5, ly); c.arc(lx, ly, 1.5, 0, TAU); }
+      c.fill();
+      /* (EE-116) a cup beside it, and its steam: three thin curls rising slowly (none at quality step 2; still if reduced) */
+      var uw = 0.3 * R, uh = 0.24 * R, ux = jx + jw + 0.2 * R, uy = jy + jh - uh;
+      c.strokeStyle = rgba(C.ink, 0.12 * a); c.lineWidth = 1; c.beginPath();
+      c.moveTo(ux, uy); c.lineTo(ux + uw, uy);
+      c.moveTo(ux, uy); c.lineTo(ux + uw * 0.1, uy + uh); c.lineTo(ux + uw * 0.9, uy + uh); c.lineTo(ux + uw, uy);
+      c.moveTo(ux + uw * 0.97, uy + uh * 0.22); c.quadraticCurveTo(ux + uw * 1.32, uy + uh * 0.32, ux + uw * 0.93, uy + uh * 0.68);
+      c.stroke();
+      if (Q.lvl < 2) {
+        var st = rm ? 0 : now, seg = 5, sh = 0.1 * R;
+        c.lineWidth = 1;
+        for (var k = 0; k < 3; k++) {
+          var x0 = ux + uw * (0.3 + 0.2 * k);
+          for (var j = 0; j < seg; j++) {
+            var ya = uy - 3 - j * sh, yb2 = ya - sh;
+            var xa = x0 + Math.sin(j * 0.9 - st * 0.7 + k * 2.1) * 0.035 * R * (0.3 + j / seg);
+            var xb = x0 + Math.sin((j + 1) * 0.9 - st * 0.7 + k * 2.1) * 0.035 * R * (0.3 + (j + 1) / seg);
+            c.strokeStyle = rgba(C.ink, 0.1 * a * (1 - j / seg));
+            c.beginPath(); c.moveTo(xa, ya); c.quadraticCurveTo(xa + (xb - xa) * 0.5 + 0.02 * R * (k - 1), (ya + yb2) / 2, xb, yb2); c.stroke();
+          }
+        }
+      }
+    }
+    /* The Long Tone: one expanding 1 px circle per breath */
+    if (U.tone && act >= 3 && (a = upA('tone', now) * la) > 0.01 && !rm) {
+      var tu = BR.disp; tu -= Math.floor(tu);
+      c.strokeStyle = rgba(mix(C.amber, C.ink, 0.5), 0.18 * (1 - tu) * a); c.lineWidth = 1;
+      c.beginPath(); c.arc(cx, cy, R * (1.3 + 2.6 * easeOut(tu)), 0, TAU); c.stroke();
+    }
+    /* The First Engine: the ring's centre glows (a radial gradient drawn once, cached) */
+    if (U.dynamo && (a = upA('dynamo', now) * la) > 0.01) {
+      if (!coreCv || coreR !== Math.round(R)) {
+        coreR = Math.round(R); coreCv = document.createElement('canvas'); var cs = coreCv.width = coreCv.height = Math.max(8, Math.round(R * 1.4 * Math.min(2, dpr)));
+        var cc = coreCv.getContext('2d'), cg = cc.createRadialGradient(cs / 2, cs / 2, 0, cs / 2, cs / 2, cs / 2);
+        cg.addColorStop(0, 'rgba(255,236,200,0.55)'); cg.addColorStop(0.4, 'rgba(242,184,102,0.22)'); cg.addColorStop(1, 'rgba(242,184,102,0)');
+        cc.fillStyle = cg; cc.fillRect(0, 0, cs, cs);
+      }
+      c.globalAlpha = a * (0.75 + 0.25 * BR.Fd); c.drawImage(coreCv, cx - R * 0.7, cy - R * 0.7, R * 1.4, R * 1.4); c.globalAlpha = 1;
+    }
+  }
+  function drawUpsFront(c, now) {
+    var U = UPS, a, i, act = tg.act, la = EO.ringAlpha * (1 - ez.finale), rB = R * (0.72 + 0.28 * (0.5 + (BR.Fd - 0.5) * EO.breathAmp));
+    if (la < 0.01) return;
+    c.globalCompositeOperation = 'lighter';
+    /* Metronome: a 4 px dot circles the rim once per breath */
+    if (U.metronome && (a = upA('metronome', now) * la) > 0.01) {
+      var ph = BR.disp - Math.floor(BR.disp), ma = -Math.PI / 2 + TAU * ph;
+      c.fillStyle = rgba(mix(C.amber, WARM, 0.5), 0.8 * a); c.beginPath(); c.arc(cx + rB * Math.cos(ma), cy + rB * Math.sin(ma), 2, 0, TAU); c.fill();
+    }
+    /* Deep Focus: a second, inner ring at 0.6 of the radius */
+    if (U.focus && (a = upA('focus', now) * la) > 0.01) {
+      c.strokeStyle = rgba(WARM, 0.5 * a); c.lineWidth = 1.2;
+      c.beginPath(); c.arc(cx, cy, rB * 0.6, 0, TAU); c.stroke();
+    }
+    /* Hum breathes: its teal breath, a second stroke just inside the rim, brightest as it breathes */
+    if (U.humBreath && (a = upA('humBreath', now) * la) > 0.01) {
+      var hp = now - fx.humP, hb = hp >= 0 && hp < 1.2 ? 1 - hp / 1.2 : 0;
+      c.strokeStyle = rgba(TEAL2, (0.16 + 0.4 * hb) * a); c.lineWidth = 1.2 + hb;
+      c.beginPath(); c.arc(cx, cy, rB * 0.93, 0, TAU); c.stroke();
+    }
+    /* Listen: one tick per level, cut into the rim; Head: a second row of ticks */
+    if (U.listen > 0 && (a = upA('listen', now) * la) > 0.01) {
+      var nL = Math.min(48, U.listen);
+      c.strokeStyle = rgba(TEAL2, 0.55 * a); c.lineWidth = 1.2; c.beginPath();
+      for (i = 0; i < nL; i++) { var la2 = -Math.PI / 2 + i * TAU / 48; c.moveTo(cx + R * 1.02 * Math.cos(la2), cy + R * 1.02 * Math.sin(la2)); c.lineTo(cx + R * 1.09 * Math.cos(la2), cy + R * 1.09 * Math.sin(la2)); }
+      c.stroke();
+      if (U.head && (a = upA('head', now) * la) > 0.01) {
+        c.strokeStyle = rgba(TEAL2, 0.4 * a); c.beginPath();
+        for (i = 0; i < nL; i++) { var lb = -Math.PI / 2 + (i + 0.5) * TAU / 48; c.moveTo(cx + R * 1.11 * Math.cos(lb), cy + R * 1.11 * Math.sin(lb)); c.lineTo(cx + R * 1.16 * Math.cos(lb), cy + R * 1.16 * Math.sin(lb)); }
+        c.stroke();
+      }
+    }
+    /* Heart: your pulse, warm white, inside Hum's teal one */
+    if (U.heart && (a = upA('heart', now) * la) > 0.01) {
+      var gp = now - fx.gold, gb = gp >= 0 && gp < 1 ? 1 - gp : 0;
+      c.strokeStyle = rgba(WARM, (0.14 + 0.45 * gb) * a); c.lineWidth = 1 + gb;
+      c.beginPath(); c.arc(cx, cy, rB * 0.86, 0, TAU); c.stroke();
+    }
+    if (act < 3 || !nDrawn || fold) return;
+    /* Local Meetup: a little cluster round Ngozi */
+    if (U.meetup && (a = upA('meetup', now) * la * F.dotVis) > 0.01 && nDrawn > 0) {
+      c.fillStyle = rgba(WARM, 0.5 * a); c.beginPath();
+      for (i = 0; i < 7; i++) { var ca = i * TAU / 7 + 0.4, cd = 5 + 3 * HS[i * 5 + 2]; c.moveTo(X[0] + cd * Math.cos(ca) + 1.2, Y[0] + cd * Math.sin(ca)); c.arc(X[0] + cd * Math.cos(ca), Y[0] + cd * Math.sin(ca), 1.2, 0, TAU); }
+      c.fill();
+    }
+    /* Hum in Every Pocket: one dot in ten tinted teal, the tint wandering */
+    if (U.pocket && (a = upA('pocket', now) * la * F.dotVis) > 0.01) {
+      var off = Math.floor(T / 3) % 10, nP = 0;
+      c.fillStyle = rgba(TEAL2, 0.55 * a); c.beginPath();
+      for (i = off; i < nDrawn && nP < 160; i += 10) { if (DA[i] < 0.05) continue; nP++; var pr = Math.max(1, DS[i] * 0.55); c.moveTo(X[i] + pr, Y[i]); c.arc(X[i], Y[i], pr, 0, TAU); }
+      c.fill();
+    }
+    /* Sitting Rooms: two small warm doorways, at Haruto's and Ana's */
+    if (U.rooms && (a = upA('rooms', now) * la * F.dotVis) > 0.01) {
+      c.fillStyle = rgba(WARM, 0.42 * a);
+      [6, 11].forEach(function (k) { if (k < nDrawn) c.fillRect(X[k] - 2, Y[k] + DS[k] + 3, 4, 6); });
+    }
+    /* round 2, bundle C: a dark dot is a ring outline with no fill, so you can still see where the person was */
+    if (tg.dark.length && F.dotVis > 0.01) {
+      c.globalCompositeOperation = 'source-over';
+      c.lineWidth = 1.2;
+      for (i = 0; i < tg.dark.length; i++) {
+        var dk = tg.dark[i]; if (!(dk < nDrawn)) continue;
+        /* (EE-108, item 17) an outline 1.5× the dot, after a flare when it has just gone dark */
+        var dage = now - (DARKT[dk] || -99), flare = dage >= 0 && dage < 2.2 ? 1 - dage / 2.2 : 0;
+        if (flare > 0) {
+          /* a flare you can see: a bright core, then a wide ring going out (EE-108, the verifier: too thin at 0.5 s) */
+          c.globalCompositeOperation = 'lighter';
+          c.fillStyle = rgba(WARM_WHITE, 0.55 * flare * flare * DA[dk]);
+          c.beginPath(); c.arc(X[dk], Y[dk], DS[dk] * (1.2 + 1.2 * (1 - flare)), 0, TAU); c.fill();
+          c.strokeStyle = rgba(WARM_WHITE, 0.95 * flare * DA[dk]); c.lineWidth = 3;
+          c.beginPath(); c.arc(X[dk], Y[dk], DS[dk] * (1 + 3 * (1 - flare)), 0, TAU); c.stroke();
+          c.globalCompositeOperation = 'source-over'; c.lineWidth = 1.2;
+        }
+        /* (EE-110, item 7) the outline is twice the dot, at 70% ink */
+        c.strokeStyle = rgba(C.ink, 0.7 * DA[dk]);
+        c.beginPath(); c.arc(X[dk], Y[dk], Math.max(4.4, DS[dk] * 0.84), 0, TAU); c.stroke();
+      }
+      c.globalCompositeOperation = 'lighter';
+    }
+    /* (EE-108, item 17) the thirteenth wears the warm white ring Act IV's lit dots wear */
+    if (tg.friend && nDrawn > 12 && !DARKF[12] && F.dotVis > 0.01) {
+      c.strokeStyle = rgba(WARM, 0.6 * la * F.dotVis * DA[12]);
+      c.lineWidth = 1.5; c.beginPath(); c.arc(X[12], Y[12], DS[12] + 4, 0, TAU); c.stroke();
+    }
+    /* Act IV: each project lights its person's dot for good, with a warm white ring (never gold) */
+    var lit = U.lit || [];
+    if (lit.length && F.dotVis > 0.01) {
+      c.lineWidth = 1.2;
+      for (i = 0; i < lit.length; i++) {
+        var k = lit[i]; if (!(k < nDrawn)) continue;
+        var lt = now - (fx.litWho === k ? fx.lit : -99), flash = lt >= 0 && lt < 1.6 ? 1 - lt / 1.6 : 0;
+        c.strokeStyle = rgba(WARM, (0.6 + 0.4 * flash) * la * F.dotVis);
+        c.lineWidth = 1.5; c.beginPath(); c.arc(X[k], Y[k], DS[k] + 4 + 6 * flash, 0, TAU); c.stroke();
+      }
+    }
+  }
+  /* The Morning Line: a sunrise band crosses the picture once, carrying the line they say together (cached band) */
+  function drawLineBand(c, now) {
+    var t = now - (fx.line || -99), dur = 9;
+    if (t < 0 || t > dur || RM()) return;
+    var bw = Math.max(260, W * 0.34), txt = UPS.sleep || '';
+    if (!lineCv || lineFor !== txt + '|' + Math.round(bw) + '|' + Math.round(H) + '|' + Math.round(cy)) {
+      lineFor = txt + '|' + Math.round(bw) + '|' + Math.round(H) + '|' + Math.round(cy);
+      lineCv = document.createElement('canvas'); var k = Math.min(2, dpr);
+      lineCv.width = Math.round(bw * k); lineCv.height = Math.round(H * k);
+      var lc = lineCv.getContext('2d'); lc.scale(k, k);
+      var lg = lc.createLinearGradient(0, 0, bw, 0);
+      lg.addColorStop(0, 'rgba(246,163,122,0)'); lg.addColorStop(0.5, 'rgba(246,163,122,0.16)'); lg.addColorStop(1, 'rgba(246,163,122,0)');
+      lc.fillStyle = lg; lc.fillRect(0, 0, bw, H);
+      if (txt) {
+        lc.font = 'italic 15px ui-serif, Georgia, "Iowan Old Style", serif'; lc.textAlign = 'center'; lc.textBaseline = 'middle';
+        lc.fillStyle = 'rgba(255,236,214,0.85)'; lc.save(); lc.translate(bw / 2, Math.min(H - 96, cy + R * 1.12 + 118)); lc.fillText('‘' + txt + '’', 0, 0); lc.restore();
+      }
+    }
+    var u = t / dur, x = -bw + (W + bw) * u, env = Math.sin(Math.PI * u);
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = env;
+    c.drawImage(lineCv, x, 0, bw, H); c.globalAlpha = 1;
+  }
+
   // ---------------------------------------------------------------- render
   function render(dt, now) {
     var c = ctx;
+    RDT = dt > 0 ? dt : 1 / 60;
     frameValues(now);
     var dawn = ez.dawn;
     if (END.kind) { dawn = Math.max(dawn, EO.dawnMin); if (EO.dawnOv >= 0) dawn = EO.dawnOv; }
@@ -1740,14 +2258,28 @@
     if (SO.background !== false) c.drawImage(bgCv, 0, 0, W, H);
 
     drawShaftAndMotes(c, dt);
+    drawRoom(c, dt, now);
     F.dotVis = ez.vis3 * EO.dots;
     if (dotsN > 0) {   // keep the spiral's extent current for backdrop and ornaments before the dots pass
       var cN = cFor(dotsN); G.rOut = Math.max(G.r0 + 1, rOf(Math.max(0, dotsN - 0.5), cN)); G.spacing = Math.sqrt(Math.PI * cN);
     }
+    var lx = liftXf(), clipped = false;
+    if (lx.k > 0.001) { c.translate(cx, cy + lx.dy); c.scale(lx.sc, lx.sc); c.translate(-cx, -cy); }
     drawBackdrop(c);
+    /* (after the soft backdrop, so only what is drawn on it, rays, dots, rings, threads, is kept out) */
+    if (CLIPOUT.length && !tg.finale) {
+      var tf0 = c.getTransform();
+      c.save(); clipped = true;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.beginPath(); c.rect(0, 0, W, H);
+      for (var co = 0; co < CLIPOUT.length; co++) { var CQ = CLIPOUT[co]; c.rect(CQ.x0, CQ.y0, CQ.x1 - CQ.x0, CQ.y1 - CQ.y0); }
+      c.clip('evenodd');
+      c.setTransform(tf0);
+    }
 
     if (F.scale !== 1) { c.translate(cx, cy); c.scale(F.scale, F.scale); c.translate(-cx, -cy); }
     drawOrnaments(c);
+    drawUpsBack(c, now);
     drawDots(c, now, dt);
     drawEmbers(c, dt);
     threadGeometry(now);
@@ -1756,19 +2288,29 @@
     drawHum(c, now);
     drawWake(c, now);
     drawPlayer(c, now);
+    drawUpsFront(c, now);
     drawRipples(c, now);
+    if (clipped) {                                   /* (the labels place themselves clear of these words already) */
+      var tf = c.getTransform(); c.restore(); c.setTransform(tf);
+    }
     drawLabels(c);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawLineBand(c, now);
 
-    drawPetals(c, dt);
     drawConfetti(c, dt);
     drawMergeDisc(c);
     drawOverlays(c, now);
+    if (BACK.length && !tg.finale) {
+      c.globalCompositeOperation = 'source-over';
+      c.fillStyle = rgba(C.night, 1);
+      for (var bk = 0; bk < BACK.length; bk++) { var B = BACK[bk]; c.globalAlpha = clamp01(B.a) * 0.92; c.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); }
+      c.globalAlpha = 1;
+    }
 
     c.globalCompositeOperation = 'source-over';
     if (EO.vign > 0.003 && SO.vignette !== false) { c.globalAlpha = EO.vign; c.drawImage(vigCv, 0, 0, W, H); }
     c.globalAlpha = 1;
-    if (SO.grain !== false) {
+    if (SO.grain !== false && Q.lvl < 2) {
       if (!grainPat) grainPat = c.createPattern(grainCv, 'repeat');
       c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.03;
       c.fillStyle = grainPat; c.fillRect(0, 0, W, H);
@@ -1790,19 +2332,70 @@
   function frame(ts) {
     rafId = requestAnimationFrame(frame);
     var now = (typeof ts === 'number' ? ts : nowSec() * 1000) / 1000;
-    var dt = lastTs ? now - lastTs : 1 / 60;
+    var raw = lastTs ? now - lastTs : -1, dt = raw < 0 ? 1 / 60 : raw;
     lastTs = now;
-    if (dt < 0) dt = 0; if (dt > 0.1) dt = 0.1;
+    /* Motion follows the clock, not the frame count: at 30 frames a second (a laptop on battery) everything covers the
+     * same ground per second as at 60 or 120. Long frames are caught up in steps of at most 0.1 s (the breath's spring
+     * stays stable); a stall over a quarter of a second (a tab coming back) is not. */
+    if (dt < 0) dt = 0; if (dt > 0.25) dt = 0.25;
     NOW = now;
+    var w0 = nowSec();
     try {
-      if (Math.min(2, Math.max(1, window.devicePixelRatio || 1)) !== dpr) sizeDirty = true;   // moved to another screen
+      if (targetDpr() !== dpr) sizeDirty = true;   // moved to another screen, or the quality step changed
       if (sizeDirty) resize();
       if (W < 2 || H < 2) return;
-      update(dt, now);
+      var steps = Math.max(1, Math.ceil(dt / 0.1 - 1e-6));
+      for (var k = 0; k < steps; k++) update(dt / steps, now);
       render(dt, now);
     } catch (e) {
       if (errCount++ < 3 && window.console) console.error('[EE.visual]', e);
     }
+    if (raw > 0) watchQuality(raw * 1000, (nowSec() - w0) * 1000, now);
+  }
+
+  /* ---------------------------------------------------------------- quality (2026-11-19, EE-104)
+   * A guard, so the Circle stays smooth on any laptop: if frames run long, the canvas draws at a lower resolution. The
+   * picture is soft light, so a step down is hard to see; what it shows never changes (every dot, every thread, every
+   * name stays). Steps: 0 = the screen's resolution (capped at 2 device pixels per CSS pixel), 1 = three quarters of
+   * it, 2 = half of it (never under 0.75) and no grain. Measured over the last ~1.5 s of frames:
+   *   long frames   an interval over 1.6× the usual one (the usual = the 20th percentile, so a display or a browser
+   *                 that runs at 30, 60 or 120 Hz is never mistaken for a slow one)
+   *   own work      the Circle's update + render; pressure if its median is over 55% of the usual interval
+   * Pressure (over 20% long frames, or the work) steps down at most every 1.5 s. Twenty quiet seconds step back up; if
+   * that step comes down again within 8 s, the level stays where it is for the rest of the sitting.
+   * EE.visual.__quality(n) holds a step (dev; null = automatic again); EE.visual.__probe() reports it. */
+  var QS = [1, 0.75, 0.5], QN = 90;
+  var Q = { lvl: 0, iv: new Float32Array(QN), wk: new Float32Array(QN), n: 0, i: 0, at: 0, quiet: 0, upAt: -99, locked: false, forced: null, every: 0 };
+  function targetDpr() {
+    var d = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    return Q.lvl ? Math.max(0.75, d * QS[Q.lvl]) : d;
+  }
+  function setQuality(l, now) {
+    l = clamp(l | 0, 0, QS.length - 1);
+    if (l === Q.lvl) return;
+    if (l > Q.lvl && now - Q.upAt < 8) Q.locked = true;
+    if (l < Q.lvl) Q.upAt = now;
+    Q.lvl = l; Q.at = now; Q.n = 0; Q.i = 0; Q.quiet = 0;
+    sizeDirty = true;
+  }
+  function pct(a, n, p) {
+    var b = Array.prototype.slice.call(a, 0, n).sort(function (x, y) { return x - y; });
+    return b[Math.min(n - 1, Math.floor(p * n))];
+  }
+  function watchQuality(iv, work, now) {
+    if (Q.forced !== null || STILL) return;
+    if (iv > 250) { Q.n = 0; Q.i = 0; return; }     /* a stall (a tab coming back, a dialog): not a rate */
+    Q.iv[Q.i] = iv; Q.wk[Q.i] = work; Q.i = (Q.i + 1) % QN; if (Q.n < QN) Q.n++;
+    if (++Q.every < 15 || Q.n < 60) return;
+    Q.every = 0;
+    var base = pct(Q.iv, Q.n, 0.2), wm = pct(Q.wk, Q.n, 0.5), long = 0;
+    for (var k = 0; k < Q.n; k++) if (Q.iv[k] > base * 1.6 && Q.iv[k] > base + 6) long++;
+    long /= Q.n;
+    if ((long > 0.2 || wm > 0.55 * base) && Q.lvl < QS.length - 1 && now - Q.at > 1.5) setQuality(Q.lvl + 1, now);
+    else if (long < 0.03 && wm < 0.3 * base && Q.lvl > 0 && !Q.locked) {
+      Q.quiet += 15 * base / 1000;
+      if (Q.quiet > 20) setQuality(Q.lvl - 1, now);
+    } else Q.quiet = 0;
   }
 
   function onVisibility() {
@@ -1923,12 +2516,31 @@
     ring: safe(function () {
       if (cv && (W < 2 || sizeDirty)) {
         var w = cv.clientWidth || 0, h = cv.clientHeight || 0;
-        if (w > 1 && h > 1) { var s = Math.min(w, h); return { x: w / 2, y: h / 2, r: Math.max(44, 0.13 * s) }; }
+        if (w > 1 && h > 1) { var s = Math.min(w, h); return { x: w / 2, y: h * RINGY, r: Math.max(44, 0.13 * s) }; }
       }
-      return { x: cx, y: cy, r: R };
+      var lx = liftXf();
+      return { x: cx, y: cy + lx.dy, r: R * lx.sc };
     }, { x: 0, y: 0, r: 44 }),
     legend: safe(function () { return P; }, 1),
+    /* where a thing in the room is on screen (canvas CSS px): 'window', the rain window's lower pane (EE-116: Deep Focus's
+     * purchase cue goes there) */
+    spot: safe(function (k) {
+      if (k !== 'window' || W < 2) return null;
+      return toScreen(cx - 3.3 * R + 1.5 * R * 0.7, cy - 1.75 * R + 1.45 * R * 0.79);
+    }, null),
     __fixes: function () { return FIXES; },      /* dev: how many values the guarded context had to change */
+    /* dev (EE-104): the picture's clock and turn (motion must follow elapsed time), the quality step, dots drawn */
+    /* dev (EE-105): the named dots' labels as last drawn, on screen (canvas CSS px), with their opacity */
+    __labels: function () { return LBL.slice(); },
+    /* where a dot is on screen (canvas CSS px), for the thirteenth's hover and tap (round 2, bundle C); null if not drawn */
+    dotAt: function (k) {
+      if (!(k < nDrawn)) return null;
+      var lq = liftXf(), x = cx + (X[k] - cx) * lq.sc, y = cy + lq.dy + (Y[k] - cy) * lq.sc;
+      return { x: x, y: y, r: DS[k] * lq.sc, a: DA[k] };
+    },
+    __probe: function () { return { T: T, rot: spiralRot, q: Q.lvl, dpr: dpr, dots: nDrawn, locked: Q.locked, rOut: G.rOut, r0: G.r0, rM: G.rM, sc: F.scale, petals: ROOM.pv }; },
+    __quality: function (n) { Q.forced = (n === null || n === undefined) ? null : clamp(n | 0, 0, QS.length - 1); if (Q.forced !== null) { Q.lvl = Q.forced; sizeDirty = true; } return Q.lvl; },
+    __mixed: function (b) { if (b !== undefined) MIXED = !!b && !STILL; return MIXED; },
     onLegend: null,
     setReducedMotion: safe(function (b) {
       reducedForced = (b === null || b === undefined) ? null : !!b;

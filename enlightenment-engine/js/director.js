@@ -32,10 +32,11 @@
   var D, ST, E;
   function boot() { D = EE.data; ST = EE.story; E = EE.econ; }
 
-  var CHAINED = { name: 1, seq: 1, 'final': 1, keepsake: 1 };
+  var CHAINED = { name: 1, pname: 1, seq: 1, 'final': 1, keepsake: 1 };
   var REQUIRED = { person: 1, sleep: 1, unsaid: 1, fifteen: 1, keep: 1 };
-  /* cards that ask the player to type (EE-110, item 6): at least D.dir.typeGap s between two of them */
-  var TYPING = { question: 1, name: 1, captcha: 1, person: 1 };
+  /* cards that ask the player to type (EE-110, item 6): at least D.dir.typeGap s between two of them (EE-116: the who-card
+   * is chips only; Hum's ask for their name follows its own name card at once, the one exchange, and is never held) */
+  var TYPING = { question: 1, name: 1, captcha: 1, pname: 1 };
   /* what may speak in the voice slot while a world line holds the caption (EE-110, item 1): the reply to something the
    * player just did (a purchase, an Invite answered by a name, a thought followed), and an act's turn, which a purchase sets off */
   var BESIDE = { reply: 1, act: 1 };
@@ -389,7 +390,7 @@
         head = s.queue[0] || null;
       } else if (t - d.lastClose < R.captchaQuiet || t - d.lastCard < R.captchaQuiet) held = true;
     }
-    if (head && !d.card && TYPING[head.k] && t - d.lastType < R.typeGap) {
+    if (head && !d.card && TYPING[head.k] && !(CHAINED[head.k] || head.ch) && t - d.lastType < R.typeGap) {
       for (i = 1; i < s.queue.length; i++) if (!TYPING[s.queue[i].k] && s.queue[i].k !== 'offer') break;
       if (i < s.queue.length) { head = s.queue.splice(i, 1)[0]; s.queue.unshift(head); }
       else held = true;
@@ -405,8 +406,12 @@
       var gp0 = (ahead && REQUIRED[head.k === 'question' ? head.id : head.k]) ? R.cardGapAhead : R.cardGap;
       if (t - d.lastCard >= gp0 - R.worldSoon) waiting = true;
     }
+    /* (EE-116) Act II, before the handover: Hum takes the breathing on a clear stage, so the lines nobody asked for
+     * (a dawn line, chatter, a gift) wait until it has (the act's turn and its story lines go first, as before) */
+    var preHand = s.act === 2 && !s.flags.handover;
     for (i = 0; i < d.q.length; i++) {
       it = d.q[i];
+      if (preHand && (it.k === 'ambient' || it.k === 'chatter' || it.k === 'gift')) continue;
       var reply = !!BESIDE[it.k], world = it.p === 'caption';
       /* a world line went first for the card at the head: that card is next, and a reply waits behind it, as it waits behind
        * any card on the stage (EE-110: world line + reply + card stretched a world-line gap to 35 s) */
@@ -426,7 +431,8 @@
       /* (EE-110, item 5) once the First Engine is bought, the act's last cards come one after another, ahead of the story
        * lines, so the Global Broadcast is not kept waiting */
       var rush = s.act === 3 && s.up.line && !s.flags.broadcastBought && (head.k === 'decision' || head.k === 'question');
-      var gap = ((ahead && REQUIRED[head.k === 'question' ? head.id : head.k]) || finaleWaits || rush) ? R.cardGapAhead : R.cardGap;
+      /* (EE-116) the who-card follows the tracker's smile line: the shorter gap, like an act's required beats once banked */
+      var gap = ((ahead && REQUIRED[head.k === 'question' ? head.id : head.k]) || finaleWaits || rush || head.k === 'person') ? R.cardGapAhead : R.cardGap;
       /* a card waits for a world line to be read (EE-110, item 1), a sequence the player set off too (it would cut it: the
        * verifier saw the broadcast cut one 0.4 s in); an offer at the ring rises under the ring beside it */
       var ready = !held && (chained || (free && t - d.lastCard >= gap)) && !(d.cap && !(head.k === 'offer' || head.k === 'final' || head.k === 'keepsake')), ok = ready && calm(s, head);
@@ -590,7 +596,7 @@
     if (!what && !ahead) {
       d.pullN += 1;
       var hasThought = s.queue.some(function (c) { return c.k === 'thought'; });
-      if (s.act <= 2 && !hasThought && (s.act === 1 || d.pullN % 2 === 1)) {
+      if (s.act <= 2 && !hasThought && !E.thoughtHold(s) && (s.act === 1 || d.pullN % 2 === 1)) {
         var th = E.pickThought(s);
         if (th) {
           var sf = shortfall(s), card = { k: 'thought', id: th.id, qt: t };

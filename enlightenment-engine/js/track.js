@@ -28,9 +28,7 @@
     first_press: {},
     act_reached: { act: [2, 3, 4], minutes: MINUTES },
     person_named: {},
-    knot_confessed: { act: ACT },
-    tell_everything: { act: ACT },
-    collapse: { act: ACT },
+    knot_confessed: { act: ACT },          /* round 2, bundle C: sent when a knot has been sat through to the end */
     ending: { kind: ['merge', 'coexist', 'sit'], tangled: 'bool', minutes: MINUTES, days: DAYS },
     keepsake_screen: { screen: [1, 2] },
     card_saved: { kind: ['card', 'desktop', 'phone'], via: ['share', 'download', 'viewer'] },

@@ -441,7 +441,7 @@
 
   var ACT_NOTE_LEVEL = 0.2;      // peak of an on-breath chime before the master
 
-  function pressOn(streak) {
+  function pressOn(streak, together) {
     var t = now() + 0.004, m = melody(streak), f = m.f, vel = m.vel;
     var shim = clamp((streak - 4) / 20, 0, 1);            // octave shimmer grows with the streak
     var v;
@@ -460,7 +460,7 @@
     chime(v, v.out, t, f, ACT_NOTE_LEVEL * vel * (act === 2 ? 0.88 : 1), 0.7);
     if (shim > 0) shimmerTail(v, v.out, t + 0.07, f, 0.06 * shim * vel);
 
-    if (act === 2) {                                      // Hum answers: a teal blip a fifth above, 120 ms later
+    if (act === 2 || (together && act === 3)) {          // Hum answers: a teal blip a fifth above, 120 ms later (a breath together)
       var a = PAN(v, v.out, 0.38);
       pluck(v, a, 'sine', f * 1.5, t + 0.12, 0.042 * vel, 0.014, 0.2);
       pluck(v, a, 'sine', f * 3.0, t + 0.12, 0.008 * vel, 0.01, 0.1);
@@ -749,6 +749,14 @@
       var v = voice('shot', { wet: 0.45, gain: 0.4 });
       var n = [2, 3, 5];
       for (var i = 0; i < n.length; i++) chime(v, v.out, t + i * 0.17, pent(n[i]), 0.2, i === 2 ? 0.8 : 0.5);
+    },
+
+    window: function (t) {                                // the gold window opens on the rim: one soft tick (round 2)
+      if (t - (rate.win || 0) < 1.5) return;
+      rate.win = t;
+      var v = voice('shot', { wet: 0.3, gain: 0.45 });
+      noiseBurst(v, v.out, t, 0.05, 4200, 4, 0.001, 0.002);
+      pluck(v, v.out, 'sine', pent(12), t, 0.014, 0.002, 0.12);
     },
 
     type: function (t) {                                  // Hum typing: a nearly inaudible tick (rate-limited)
@@ -1232,7 +1240,7 @@
   api.press = safe(function (opts) {
     if (!unlocked || hushed) return;
     var o = (opts && typeof opts === 'object') ? opts : {};
-    if (o.onBreath) pressOn(Math.round(num(o.streak, 0))); else pressOff();
+    if (o.onBreath) pressOn(Math.round(num(o.streak, 0)), !!o.together); else pressOff();
   });
 
   api.play = safe(function (name, opts) {

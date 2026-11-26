@@ -37,10 +37,8 @@
         for (var k in list) arm(list[k]);
         /* the page's own deadlines move on by the time that was held */
         away = away || 0;
-        UI.nextCardAt += away; UI.tickerAt += away;
+        UI.nextCardAt += away;
         if (UI.finalUI) UI.finalUI.at += away;
-        if (UI.guideUntil) UI.guideUntil += away;
-        if (UI.glow) UI.glow.until += away;
       },
       held: function () { return held; }
     };
@@ -100,15 +98,20 @@
   UI.init = function (game) {
     G = game;
     UI.reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    UI.fold = {}; UI.sig = {}; UI.disp = {}; UI.card = null; UI.reader = null; UI.jq = []; UI.jBusy = false;
-    UI.touched = {}; UI.nextCardAt = 0; UI.namesShown = 0; UI.floatIx = 0; UI.toasts = []; UI.lastSync = 0; UI.ringBox = null;
+    UI.fold = {}; UI.sig = {}; UI.disp = {}; UI.card = null; UI.reader = null;
+    UI.touched = {}; UI.nextCardAt = 0; UI.namesShown = 0; UI.floatIx = 0; UI.lastSync = 0; UI.ringBox = null; UI.ht = null;
 
     staticWords();
 
     /* floats pool */
     var f = $('floats');
     UI.floats = [];
-    for (var i = 0; i < 40; i++) { var sp = h('span', 'float'); f.appendChild(sp); UI.floats.push(sp); }
+    for (var i = 0; i < 24; i++) { var sp = h('span', 'float'); f.appendChild(sp); UI.floats.push(sp); }
+    /* three motes, reused: a hint's stream (DESIGN §4.7) */
+    UI.motes = [];
+    for (i = 0; i < 3; i++) { var mo = h('div', 'mote'); document.body.appendChild(mo); UI.motes.push(mo); }
+    /* and one for the buy moment: from the row back to the ring */
+    UI.buyMote = document.body.appendChild(h('div', 'mote buy'));
     var pips = $('pips');
     for (i = 0; i < 10; i++) pips.appendChild(h('i'));
 
@@ -140,8 +143,40 @@
     $('reader').addEventListener('click', function () { readerAdvance(true); });
     $('intro').addEventListener('click', UI.introTap);
     $('panels').addEventListener('click', onPanelClick);
+    /* a row looked at (hovered, focused): the director holds anything unasked for a moment (D.dir.busy) */
+    var hovAt = 0;
+    function looked(e) {
+      var t = e.target.closest ? e.target.closest('.item') : null;
+      if (!t || now() - hovAt < 500) return;
+      hovAt = now(); G.hover();
+    }
+    $('panels').addEventListener('pointerover', looked);
+    $('panels').addEventListener('focusin', looked);
     $('overlay').addEventListener('click', function (e) { if (e.target === $('overlay') && UI.overlayKind === 'menu') UI.closeOverlay(); });
-    window.addEventListener('resize', function () { UI.ringBox = null; });
+    /* the thirteenth's name shows while the pointer is on its dot, and for three seconds after a tap on it (round 2) */
+    function nearFriend(e) {
+      var s = S(), cv = $('cv').getBoundingClientRect();
+      if (!s || !E.hasFriend(s) || !EE.visual || !EE.visual.dotAt) return false;
+      var d = EE.visual.dotAt(12);
+      if (!d) return false;
+      var dx = e.clientX - cv.left - d.x, dy = e.clientY - cv.top - d.y;
+      return dx * dx + dy * dy <= Math.pow(Math.max(14, d.r + 8), 2);
+    }
+    $('stage').addEventListener('pointermove', function (e) {
+      if (e.pointerType === 'touch') return;
+      var on = nearFriend(e);
+      if (on !== !!UI.friendHov) { UI.friendHov = on; G.V('set', { friendHover: on || now() < (UI.friendTip || 0) }); }
+    });
+    $('stage').addEventListener('pointerdown', function (e) {
+      if (!nearFriend(e)) return;
+      UI.friendTip = now() + 3000;
+      G.V('set', { friendHover: true });
+      setTimeout(function () { if (now() >= UI.friendTip && !UI.friendHov) G.V('set', { friendHover: false }); }, 3050);
+    });
+    /* laptop: the ring at 42% of the stage, the voice slot above it, the card dock below (Bob's art review) */
+    function ringPlace() { G.V('set', { ringY: window.innerWidth >= 900 ? 0.42 : 0.5 }); UI.ringBox = null; }
+    window.addEventListener('resize', ringPlace);
+    ringPlace();
     UI.syncSound();
   };
 
@@ -194,13 +229,16 @@
     clear($('cards')); clear($('resources')); clear($('chips')); clear($('panels')); clear($('jList')); clear($('orbs'));
     $('finalPanel').hidden = true; clear($('finalPanel'));
     $('titleCard').hidden = true; $('bigCount').hidden = true;
-    $('whisper').className = ''; $('whisper').textContent = '';
-    $('ticker').className = ''; clear($('ticker'));
+    UI.vRelease = null;                                  /* a line of the run being left does not enter the new Journal */
+    if (UI.tog) { clearTimeout(UI.tog.t); UI.tog = null; }
+    UI.panelHold = 0; UI.darkFor = null; UI.namesRisen = 0; UI.orderSig = null;
+    voiceClear(); UI.captionOut(true); UI.hint(null);
     UI.closeOverlay(true);
-    UI.sig = {}; UI.disp = {}; UI.res = {}; UI.jq = []; UI.jBusy = false; UI.fold = {}; UI.finalUI = null; UI.holdKeepsake = false;
-    UI.namesShown = s.joined; UI.nextCardAt = now() + 600; UI.tickerAt = now() + 4000; UI.tickerN = 0; UI.ringBox = null;
-    UI.lastAct = s.act; UI.confirmConfess = false; UI.mergedShown = false; UI.touched = {};
-    UI.white = false; UI.whiteT0 = 0; UI.glow = null; UI.guideUntil = 0; UI.whisperNudge = false; clearTimeout(UI.pumpT);
+    UI.sig = {}; UI.disp = {}; UI.res = {}; UI.fold = {}; UI.finalUI = null; UI.holdKeepsake = false; UI.panelsReady = false;
+    UI.namesShown = s.joined; UI.nextCardAt = now() + 600; UI.ringBox = null; liftTo(0);
+    UI.lastAct = s.act; UI.mergedShown = false; UI.touched = {}; UI.sitOn = null; UI.friendTip = 0;
+    UI.white = false; UI.whiteT0 = 0;
+    if (s.dir && s.dir.ht && s.dir.ht.on) UI.hint(s.dir.ht.tg);
     UI.langsDone = false; UI.keepPage = 1;
     /* a new page of the game (a load, a jump, a new sitting): the language row is there or not, with no fade */
     clearTimeout(UI.langsT); UI.langsT = 0;
@@ -208,7 +246,7 @@
     le.hidden = !lw;
     if (lw) le.removeAttribute('aria-hidden'); else le.setAttribute('aria-hidden', 'true');
     var start = Math.max(0, s.journal.length - 220);
-    for (var i = start; i < s.journal.length; i++) addRow(s.journal[i]);
+    for (var i = start; i < s.journal.length; i++) if (!s.journal[i].q) addRow(s.journal[i]);
     UI.sync(true);
   };
 
@@ -297,7 +335,7 @@
   /* ───────────── the ring ───────────── */
 
   function ringBox() {
-    if (UI.ringBox && now() - UI.ringBox.at < 700) return UI.ringBox;
+    if (UI.ringBox && now() - UI.ringBox.at < 700 && now() > (UI.liftUntil || 0)) return UI.ringBox;
     var st = $('stage'), w = st.clientWidth, hh = $('cv').clientHeight || st.clientHeight, r = G.V('ring');
     if (!r || !(r.r > 0)) { var m = Math.min(w, hh); r = { x: w / 2, y: hh / 2, r: Math.max(44, m * 0.13) }; }
     UI.ringBox = { x: r.x, y: r.y, r: r.r, w: w, h: hh, at: now() };
@@ -310,46 +348,55 @@
     UI.ringBox.labelBottom = labelBottom;
     UI.wide = window.innerWidth >= 900;
     UI.short = UI.wide && hh < 760;
-    var gd = $('guide'), d2 = r.r * 2;
-    gd.style.left = r.x + 'px'; gd.style.top = r.y + 'px'; gd.style.width = d2 + 'px'; gd.style.height = d2 + 'px';
+    /* the voice slot: its foot 32 px above the ring's top edge, growing upward, never above 10% of the stage (Bob) */
+    /* (anchored from the top: a phone's stage grows a bay under the picture for a card, and the slot must not move) */
+    var vb = Math.max(0, r.y - r.r - 32), vo = $('voice');
+    vo.style.top = '0px'; vo.style.height = Math.round(vb) + 'px';
+    st.style.setProperty('--voice-foot', Math.round(vb) + 'px');            /* a sequence in play sits here too (EE-108) */
+    /* "now", on the rim at its fullest point */
+    var nw = $('now');
+    nw.style.left = r.x + 'px'; nw.style.top = Math.round(r.y - r.r + 17) + 'px';     /* just inside the rim, clear of its stroke */
     st.style.setProperty('--card-top', Math.round(labelBottom + 6) + 'px');
     st.style.setProperty('--below', Math.max(64, Math.round(hh - labelBottom - 10)) + 'px');
     return UI.ringBox;
   }
 
-  /* Floating numbers. At most one new number every 450 ms: presses in between are added up into the next one,
-   * so each number is legible, rises clear of the one before, and is gone. */
-  var FLOAT_GAP = 450;
-  function floatFlush() {
-    var a = UI.fAcc, box = ringBox();
-    UI.fAcc = null; UI.fTimer = null;
-    if (!a || S().phase !== 'play') return;
-    var amt = a.amt, txt;
-    if (a.res === 'followers') { if (amt < 1) return; txt = '+' + E.num(amt); }
-    else txt = '+' + (amt < 100 ? E.rate(amt) : E.num(amt));
-    UI.fLast = now();
-    var sp = UI.floats[UI.floatIx++ % UI.floats.length];
-    sp.className = 'float c-' + a.res + (a.on ? ' on' : a.weak ? ' weak' : '');
-    sp.textContent = txt;
-    UI.fSide = -(UI.fSide || 1);
-    sp.style.left = (box.x + UI.fSide * box.r * 0.16) + 'px';
-    sp.style.top = (box.y - box.r * 0.9) + 'px';
-    void sp.offsetWidth;
-    sp.classList.add('go');
-  }
+  /* Floating numbers (round 2, DESIGN §4.1): a number rises only when a press earned it, and shows exactly that.
+   * A gold press: one gold "+N". An early or late press: one small grey "+1". A dry tap: nothing. Hum's own breath
+   * (Heartbeat Loop): a faint number of its own. */
   UI.pressFx = function (res, byHum) {
     var s = S();
-    if (s.phase !== 'play') return;
-    if (!(res.amt > 0) && !(S().act === 3 && s.joined < D.act3.first.n)) return;   /* a breath pays once: a press past it floats nothing */
-    var a = UI.fAcc;
-    if (a && a.res === res.res) { a.amt += res.amt; a.on = a.on || res.on; a.weak = a.weak && !!res.weak; }
-    else UI.fAcc = { res: res.res, amt: res.amt, on: res.on, weak: !!res.weak };
-    var wait = FLOAT_GAP - (now() - (UI.fLast || 0));
-    if (wait <= 0) floatFlush();
-    else if (!UI.fTimer) UI.fTimer = setTimeout(floatFlush, wait);
+    if (s.phase !== 'play' || !res) return;
+    /* (EE-108, eye pass item 11) after the handover a gold press is a breath together: the number waits for Hum's
+     * breath of the same breath, and one gold number shows the two together, with the word for it */
+    if (!byHum && res.together && res.kind === 'gold' && res.amt > 0) {
+      if (UI.tog) clearTimeout(UI.tog.t);
+      var tg0 = UI.tog = { res: res, cyc: G.cyc };
+      tg0.t = setTimeout(function () { if (UI.tog === tg0) { UI.tog = null; showFloat(res, false); } }, 1500 / G.pace());
+      return;
+    }
+    if (byHum && UI.tog && UI.tog.cyc === G.cyc && UI.tog.res.res === res.res) {
+      var both = UI.tog; clearTimeout(both.t); UI.tog = null;
+      showFloat(Object.assign({}, both.res, { amt: both.res.amt + (res.amt > 0 ? res.amt : 0) }), false);
+      return;
+    }
+    showFloat(res, byHum);
+  };
+  function showFloat(res, byHum) {
+    var s = S();
+    if (res.kind === 'dry' || !(res.amt > 0)) return;
+    var box = ringBox(), sp = UI.floats[UI.floatIx++ % UI.floats.length], amt = res.amt, txt;
+    if (res.res === 'followers') { if (amt < 1) return; txt = '+' + E.num(amt); }
+    else txt = '+' + (amt < 100 ? E.rate(amt) : E.num(amt));
+    sp.className = 'float ' + (byHum ? 'byhum' : res.kind === 'gold' ? 'gold' : 'miss') + ' c-' + res.res;
+    sp.textContent = txt;
+    sp.style.left = box.x + 'px';
+    sp.style.top = (box.y - box.r * 0.55) + 'px';      /* inside the ring, clear of the gold stroke */
+    void sp.offsetWidth;
+    sp.classList.add('go');
     if (res.on && !byHum) {
-      var w = $('onword');
-      w.textContent = ST.ui.onBreath[Math.floor(Math.random() * ST.ui.onBreath.length)];
+      var w = $('onword'), words = res.together ? ST.ui.together : ST.ui.onBreath;
+      w.textContent = T(words[(s.breaths + s.clicks) % words.length]);
       w.classList.remove('show'); void w.offsetWidth; w.classList.add('show');
     }
   };
@@ -366,9 +413,14 @@
 
   UI.spawnOrb = function (lotus) {
     var st = $('stage'), w = st.clientWidth, hh = $('cv').clientHeight || st.clientHeight, box = ringBox();
-    var x, y, tries = 0;
-    do { x = w * (0.12 + Math.random() * 0.76); y = hh * (0.16 + Math.random() * 0.36); tries++; }
-    while (tries < 20 && Math.hypot(x - box.x, y - box.y) < box.r * 1.45);
+    /* where it appears: from the run's seed and clock, without touching the run's own random stream (E.rand) */
+    var x, y, tries = 0, q = ((S().seed ^ Math.floor(S().t * 1000)) >>> 0) || 1;
+    function rnd() { q ^= q << 13; q >>>= 0; q ^= q >>> 17; q ^= q << 5; q >>>= 0; return q / 4294967296; }
+    /* never on a line in the voice slot (EE-108, eye pass item 9): the slot's plates, wherever they are */
+    var stR = st.getBoundingClientRect(), pl = $('voice').querySelector('.plate'), pr = pl && pl.getBoundingClientRect();
+    var onPlate = function (x0, y0) { return pr && pr.width > 0 && x0 > pr.left - stR.left - 40 && x0 < pr.right - stR.left + 40 && y0 > pr.top - stR.top - 40 && y0 < pr.bottom - stR.top + 40; };
+    do { x = w * (0.12 + rnd() * 0.76); y = hh * (0.16 + rnd() * 0.36); tries++; }
+    while (tries < 30 && (Math.hypot(x - box.x, y - box.y) < box.r * 1.45 || onPlate(x, y)));
     var o = h('button', 'orb' + (lotus ? ' lotus' : ''), null, { 'aria-label': lotus ? 'lotus' : 'orb', 'data-orb': lotus ? 'lotus' : 'orb' });
     o.style.left = x + 'px'; o.style.top = y + 'px';
     var life = (lotus ? D.small.lotus.life : D.small.orb.life) * 1000, gone = false;
@@ -378,12 +430,12 @@
     setTimeout(out, life);
   };
 
-  /* ───────────── journal and whisper ───────────── */
+  /* ───────────── the journal ───────────── */
 
   function addRow(entry, empty) {
     var row = h('div', 'j-row' + (entry.k ? ' j-' + entry.k : isHum(entry.x) ? ' j-hum' : '') + (entry.s ? ' star' : ''), [
       h('span', 'j-day', ST.build.day.replace('{n}', E.num(entry.d))),
-      h('span', 'j-text', empty ? '' : entry.x)
+      h('span', 'j-text', empty ? '' : entry.b ? [h('b', null, entry.x.slice(0, entry.b)), entry.x.slice(entry.b)] : entry.x)
     ], { tabindex: '0' });
     row._e = entry;
     var list = $('jList');
@@ -392,89 +444,292 @@
     return row;
   }
 
-  UI.journalAdd = function (entry, quiet) {
+  /* A line reaches the Journal: when it is said, or at once if it is not for the stage. */
+  UI.journalAdd = function (entry) {
     $('journal').hidden = false;
-    if (quiet || G.fastText) { addRow(entry); if (entry._j != null) revealName(entry._j); return; }
-    UI.jq.push(entry);
-    pump();
+    addRow(entry);
+    if (entry._j != null) revealName(entry._j);
   };
 
   function revealName(j) {
     if (j + 1 > UI.namesShown) { UI.namesShown = j + 1; G.V('pulse', 'join', { n: 1 }); G.A('play', 'join'); }
   }
 
-  function whisper(text) {
-    var w = $('whisper');
-    clearTimeout(UI.whisperT);
-    w.className = 'show' + (isHum(text) ? ' hum' : '');
-    return w;
+  /* ───────────── the voice slot: one line at a time, just above the ring (DESIGN §5; Bob's art review) ─────────────
+   * Hum (teal mono, typed), the tracker (desaturated teal mono), the narrator (serif, fades in whole). The director
+   * says when; this only draws. A line into an empty slot rises 14 px and fades in; a line replacing one cross-fades in
+   * place (300 ms). When its reading time is over it dims to 40% (its plate too) and stays until replaced; while a card
+   * owns the stage the dimmed line is gone. The first two lines of a run shrink into the Journal instead, so the player
+   * learns where history lives. */
+  function whereText(t, tg) {
+    var atRing = tg && tg.indexOf('row:') === 0 && !!$('cards').querySelector('.card.offer[data-id="' + tg.slice(4) + '"]');
+    return String(t).replace('{where}', ST.nudges.where[UI.wide && !atRing ? 'wide' : 'narrow']);
   }
-  function whisperOut(ms) {
-    clearTimeout(UI.whisperT);
-    UI.whisperT = setTimeout(function () { $('whisper').classList.remove('show'); }, ms);
+  /* the line now in the slot enters the Journal (once): when it has been typed out, or when it is replaced first */
+  function voiceRelease() { var f = UI.vRelease; UI.vRelease = null; if (f) f(); }
+  UI.voiceRelease = voiceRelease;
+  function voiceClear() {
+    var box = $('voice');
+    voiceRelease();
+    if (UI.vType) { clearInterval(UI.vType); UI.vType = 0; }
+    clearTimeout(UI.vClear);
+    clear(box); box.className = '';
+    UI.vLine = null;
+    UI.keepSig = null; G.V('set', { keepOut: null });
+    UI.bkSig = null; G.V('set', { backing: [] });
   }
-
-  function pump() {
-    if (UI.jBusy || !UI.jq.length) return;
-    UI.jBusy = true;
-    var e = UI.jq.shift(), hum = isHum(e.x), hurry = UI.jq.length > 4 ? 0.5 : UI.jq.length > 1 ? 0.8 : 1;
-    var row = e.n ? null : addRow(e, hum), w = whisper(e.x);
-    UI.whisperNudge = !!e.n;
-    if (e._j != null) revealName(e._j);
-    function after(hold, shown) {
-      UI.pumpT = setTimeout(function () {
-        UI.jBusy = false;
-        /* nothing follows: the line stays its full reading time, then fades */
-        if (!UI.jq.length) whisperOut(Math.max(900 / G.pace(), readTime(e.x) - shown - hold * hurry));
-        pump();
-      }, hold * hurry);
+  UI.voice = function (e) {
+    var box = $('voice'), text = e.k === 'hint' ? whereText(e.text, e.tg) : e.text;
+    if (!text) { if (e.release) e.release(); return; }
+    voiceRelease();
+    UI.vRelease = e.release || null;
+    var hum = isHum(text), kind = e.k === 'tracker' ? 'tracker' : hum ? 'hum' : 'narr';
+    var wasOn = !!UI.vLine, cap = $('caption'), after = false;
+    /* one place at a time: a world line still on (or fading) goes in 200 ms, and this line waits for it; the reply to the
+     * player speaks beside it and it stays (EE-110: the director lets nothing else start over a world line) */
+    if (!BESIDE_UI[e.k] && cap.className === 'on' && +getComputedStyle(cap).opacity > 0.01) {
+      /* restart the fade from where it is (a fade already running would keep its own 1.5 s) */
+      var o0 = getComputedStyle(cap).opacity;
+      cap.style.transition = 'none'; cap.style.opacity = o0; void cap.offsetWidth;
+      cap.style.transition = 'opacity 0.2s ease'; cap.style.opacity = '0';
+      cap.className = 'cut'; after = true;
     }
-    if (hum) {
-      w.textContent = '';
-      G.humSpeak(e.x);
-      var typed = e.x.length * TYPE_MS / G.pace();
-      typeInto([row && row.lastChild, w], e.x, function () { after(Math.max(2500 / G.pace(), seqTime(e.x) - typed), typed); });
-    } else {
-      w.textContent = e.x;
-      after(seqTime(e.x), 0);
+    clearTimeout(UI.vClear);
+    if (UI.vType) { clearInterval(UI.vType); UI.vType = 0; }
+    [].forEach.call(box.querySelectorAll('.plate'), function (old) {
+      if (old.classList.contains('gone')) return;
+      /* its words go at once (EE-108: the old line's "> " showed through the new plate while it faded) */
+      old.style.animation = 'none'; old.classList.remove('rise', 'swap');
+      var ot = old.querySelector('.v-text'); if (ot) { ot.style.transition = 'none'; ot.style.opacity = '0'; }
+      old.classList.add('gone');
+      setTimeout(function () { old.remove(); }, 320);
+    });
+    var p = h('p', 'v-text'), plate = h('div', 'plate ' + kind + (wasOn ? ' swap' : ' rise') + (after ? ' after' : ''), [p]);
+    if (e.bold) { p.appendChild(h('b', null, text.slice(0, e.bold))); p.appendChild(document.createTextNode(text.slice(e.bold))); voiceRelease(); }
+    else if (kind !== 'narr' && !UI.reduced && !G.fastText) {
+      /* typed on a plate of fixed size: the rest of the line is there from the start, unseen, so nothing reflows */
+      var shown = document.createTextNode(''), rest = h('span', 'v-rest', text);
+      p.appendChild(shown); p.appendChild(rest);
+      var dur = Math.min(1600, text.length / 45 * 1000) / G.pace(), t0 = now() + (wasOn ? 0 : 250), k = 0;
+      UI.vType = setInterval(function () {
+        var n = Math.max(0, Math.min(text.length, Math.ceil(text.length * (now() - t0) / Math.max(1, dur))));
+        if (shown.data.length !== n) { shown.data = text.slice(0, n); rest.textContent = text.slice(n); if (++k % 3 === 0) G.A('play', 'type'); }
+        if (n >= text.length) { clearInterval(UI.vType); UI.vType = 0; voiceRelease(); if (e.join != null) revealName(e.join); trackerAfter(e, p, shown); }
+      }, 33);
+    } else { p.textContent = text; voiceRelease(); if (e.join != null) revealName(e.join); }
+    /* once it has risen, the plate lets go of its animation, so dimming, cross-fades and fading out can move it */
+    plate.addEventListener('animationend', function () { plate.classList.remove('rise', 'swap'); });
+    box.appendChild(plate);
+    box.className = 'on';
+    UI.vLine = { first: e.first, at: now(), k: e.k, tg: e.tg, j: e.n != null || !!e.j };
+    if (!(kind !== 'narr' && !UI.reduced && !G.fastText) && (e.drop || e.then)) trackerAfter(e, p, null);
+    if (hum) G.humSpeak(text);
+    syncKeep();
+  };
+  /* The tracker's tells (round 2): " · nice" deletes itself letter by letter; "breath n logged…" becomes "> _" for one
+   * breath. Reduced motion: the line changes whole. */
+  function trackerAfter(e, p, node) {
+    if (!e.drop && !e.then) return;
+    var line = UI.vLine;
+    var full = e.text, keep = e.drop ? full.slice(0, full.length - e.drop.length) : null;
+    function mine() { return UI.vLine === line && p.isConnected; }
+    function set(x) { if (node) { node.data = x; var r = p.querySelector('.v-rest'); if (r) r.textContent = ''; } else p.textContent = x; }
+    clearTimeout(UI.vAfter);
+    UI.vAfter = setTimeout(function () {
+      if (!mine()) return;
+      if (e.then) { set(e.then); return; }
+      if (UI.reduced || G.fastText) { set(keep); return; }
+      var n = full.length;
+      (function del() {
+        if (!mine() || n <= keep.length) return;
+        n -= 1; set(full.slice(0, n)); G.A('play', 'type');
+        UI.vAfter = setTimeout(del, 85 / G.pace());
+      })();
+    }, (e.then ? 2600 : 1300) / G.pace());
+  }
+  /* Where the plate is, for the picture: a named dot's label never shows through it (visual.js keepOut) */
+  /* (EE-107: also while a card is up. A lit line stays above the ring when a card rises, and moves up with the ring when
+   * the card lifts it; only a plate nobody can see any more lets the labels back.) */
+  function syncKeep() {
+    var vb = $('voice'), r = null, p = UI.vLine ? vb.querySelector('.plate:not(.gone)') : null;
+    if (p && $('stage').classList.contains('carding') && +getComputedStyle(vb).opacity * +getComputedStyle(p).opacity < 0.03) p = null;
+    if (p) {
+      var a = p.getBoundingClientRect(), cv = $('cv').getBoundingClientRect();
+      if (a.width > 0) r = { x0: Math.round(a.left - cv.left), x1: Math.round(a.right - cv.left), y0: Math.round(a.top - cv.top - 2), y1: Math.round(a.bottom - cv.top + 16) };
     }
+    var sig = r ? [r.x0, r.y0, r.x1, r.y1].join(',') : '';
+    if (sig !== UI.keepSig) { UI.keepSig = sig; G.V('set', { keepOut: r }); }
+  }
+  UI.syncKeep = syncKeep;
+  /* (EE-108, eye pass item 12) what a named dot's label must never cross: the header, the act's title, the ring's words,
+   * pips and press label, and "now" on the rim (canvas CSS px). The picture hides the label instead. */
+  function syncKeepOuts() {
+    var cv = $('cv').getBoundingClientRect(), out = [];
+    ['hdr', 'actTitle', 'verb', 'pips', 'onword', 'change', 'now', 'legend', 'reader'].forEach(function (id) {
+      var el = $(id);
+      if (!el || el.hidden) return;
+      if (id === 'reader' && !el.classList.contains('slot')) return;      /* a sequence in the voice slot (EE-108) */
+      if (id !== 'hdr' && id !== 'verb' && id !== 'pips' && +getComputedStyle(el).opacity < 0.05) return;
+      var r = el.getBoundingClientRect();
+      if (!(r.width > 0 && r.height > 0)) return;
+      out.push({ x0: Math.round(r.left - cv.left), y0: Math.round(r.top - cv.top), x1: Math.round(r.right - cv.left), y1: Math.round(r.bottom - cv.top) });
+    });
+    var sig = out.map(function (b) { return b.x0 + ',' + b.y0 + ',' + b.x1 + ',' + b.y1; }).join(';');
+    if (sig !== UI.koSig) { UI.koSig = sig; G.V('set', { keepOuts: out }); }
+    /* (EE-108, Muse) the press label and the words under the ring: the picture is clipped out under their text */
+    var clip = [], rg = document.createRange();
+    ['verb', 'onword', 'change'].forEach(function (id) {
+      var el = $(id);
+      if (!el || el.hidden || !el.textContent.trim()) return;
+      if (id !== 'verb' && +getComputedStyle(el).opacity < 0.05) return;
+      rg.selectNodeContents(el);
+      var r = rg.getBoundingClientRect();
+      if (r.width > 0) clip.push({ x0: Math.floor(r.left - cv.left - 4), y0: Math.floor(r.top - cv.top - 2), x1: Math.ceil(r.right - cv.left + 4), y1: Math.ceil(r.bottom - cv.top + 2) });
+    });
+    /* (EE-110, item 9) and the pips under the ring: no tangle thread (nor anything else) is drawn across them */
+    var pp = $('pips');
+    if (pp && !pp.hidden && pp.offsetParent && pp.firstElementChild) {
+      /* (the row of dots itself, not the full-width box it is centred in) */
+      var pa = pp.firstElementChild.getBoundingClientRect(), pz = pp.lastElementChild.getBoundingClientRect();
+      if (pz.right > pa.left) clip.push({ x0: Math.floor(pa.left - cv.left - 4), y0: Math.floor(pa.top - cv.top - 3), x1: Math.ceil(pz.right - cv.left + 4), y1: Math.ceil(pz.bottom - cv.top + 3) });
+    }
+    var csig = clip.map(function (b) { return b.x0 + ',' + b.y0 + ',' + b.x1 + ',' + b.y1; }).join(';');
+    if (csig !== UI.clipSig) { UI.clipSig = csig; G.V('set', { clipOut: clip }); }
+    syncBacking();
+  }
+  /* (EE-108, item 9) the picture is painted out under a visible plate: the voice slot's, or a sequence's in the slot */
+  function syncBacking() {
+    var cv = $('cv').getBoundingClientRect(), out = [], vb = $('voice');
+    function add(el, op) {
+      if (!el || !(op > 0.02)) return;
+      var r = el.getBoundingClientRect();
+      if (r.width > 0) out.push({ x0: Math.round(r.left - cv.left), y0: Math.round(r.top - cv.top), x1: Math.round(r.right - cv.left), y1: Math.round(r.bottom - cv.top), a: Math.round(op * 20) / 20 });
+    }
+    var pl = vb.querySelector('.plate:not(.gone)');
+    if (pl) add(pl, +getComputedStyle(vb).opacity * +getComputedStyle(pl).opacity);
+    var rd = $('reader');
+    if (!rd.hidden && rd.classList.contains('slot')) add(rd, 1);
+    var sig = out.map(function (b) { return [b.x0, b.y0, b.x1, b.y1, b.a].join(','); }).join(';');
+    if (sig !== UI.bkSig) { UI.bkSig = sig; G.V('set', { backing: out }); }
+  }
+  UI.voiceDim = function () {
+    var box = $('voice'), v = UI.vLine;
+    if (!v || UI.sitOn) return;                     /* a Ledger line being sat through holds until it has faded */
+    if (UI.vType) { clearInterval(UI.vType); UI.vType = 0; var r = box.querySelector('.plate:not(.gone) .v-rest'); if (r) { r.previousSibling.data += r.textContent; r.textContent = ''; } }
+    voiceRelease();
+    /* the first two lines of a run go to the Journal, where history lives */
+    /* (only a line that goes to the Journal, and only when the Journal is there to receive it) */
+    if (v.first && v.first <= 2 && v.j && !UI.reduced && S().clicks <= 6 && !$('journal').hidden) { journalDrop(); return; }
+    box.classList.add('dim');
+    /* Acts III–IV: the named dots ring the ring, so a dimmed line leaves after a few seconds (and gives back their labels) */
+    if (S().act >= 3) UI.vClear = setTimeout(function () { if (UI.vLine === v) UI.voiceOut(); }, 4000 / G.pace());
+  };
+  UI.voiceOut = function () {
+    var box = $('voice');
+    if (!UI.vLine || UI.sitOn) return;
+    voiceRelease();
+    UI.vLine = null;
+    clearTimeout(UI.vClear);
+    /* the labels come back once the plate has faded (UI.frame) */
+    box.classList.add('out');
+    var plates = [].slice.call(box.querySelectorAll('.plate'));
+    setTimeout(function () { plates.forEach(function (p) { p.remove(); }); if (!UI.vLine) box.className = ''; }, 700);
+  };
+  function journalDrop() {
+    var box = $('voice'), plate = box.querySelector('.plate:not(.gone)'), to = $('jLabel');
+    UI.vLine = null;
+    if (!plate) { box.className = ''; return; }
+    var a = plate.getBoundingClientRect(), b = (to && !$('journal').hidden && to.getBoundingClientRect()) || null;
+    if (!b || b.width === 0 || !plate.animate) { UI.vLine = {}; UI.voiceOut(); return; }      /* (no Journal to fly to: it fades) */
+    var dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    var anim = plate.animate([{ transform: 'translateX(-50%)', opacity: 1 }, { transform: 'translate(calc(-50% + ' + dx + 'px), ' + dy + 'px) scale(0.12)', opacity: 0 }],
+      { duration: 600, easing: 'cubic-bezier(.4,0,.6,1)', fill: 'forwards' });
+    anim.onfinish = function () { plate.remove(); if (!UI.vLine) box.className = ''; };
   }
 
-  /* A nudge: a narrator line on the stage only (never in the journal). */
-  UI.nudge = function (text) {
-    if (!text) return;
-    UI.jq.push({ x: text, n: true });
-    pump();
+  /* ───────────── the caption: world lines at the foot of the stage, and one dot in the picture flares ───────────── */
+  var BESIDE_UI = { reply: 1, act: 1 };
+  UI.caption = function (e) {
+    var c = $('caption'), p = c.firstChild, vb = $('voice');
+    /* one place at a time: a line still in the voice slot (dimmed, or already fading) goes first, and the world line
+     * comes in after it */
+    /* (EE-110) ... except the reply to the player, which may stay lit beside it */
+    var keepReply = !!UI.vLine && BESIDE_UI[UI.vLine.k] && !vb.classList.contains('dim');
+    var late = !keepReply && (!!UI.vLine || (!!vb.querySelector('.plate') && vb.className !== ''));
+    if (UI.vLine && !keepReply) UI.voiceOut();
+    p.textContent = e.text;
+    c.style.transition = ''; c.style.opacity = '';
+    c.className = late ? 'on late' : 'on';
+    G.V('pulse', 'one');
   };
-  UI.clearNudges = function () {
-    UI.jq = UI.jq.filter(function (e) { return !e.n; });
-    if (UI.whisperNudge) { UI.whisperNudge = false; whisperOut(300); }
-    UI.guideUntil = 0;
+  UI.captionOut = function (now_) {
+    var c = $('caption');
+    if (now_) { c.className = ''; c.style.transition = ''; c.style.opacity = ''; return; }
+    if (c.classList.contains('on')) c.className = 'out';
   };
 
-  /* Point at something the player has not noticed: one small mote of warm light drifts from the ring to it,
-   * and it glows softly for a while (or until it is used). Reduced motion: the glow only. */
-  UI.pointAt = function (sel) {
-    UI.glow = { sel: sel, until: now() + D.small.nudge.glow * 1000 };
-    var target = $('panels').querySelector(sel);
-    if (!target || UI.reduced) return;
-    var box = ringBox(), st = $('stage').getBoundingClientRect(), tr = target.getBoundingClientRect();
-    var x0 = st.left + box.x, y0 = st.top + box.y, x1 = tr.left + Math.min(tr.width / 2, 90), y1 = tr.top + tr.height / 2;
-    var m = h('div', 'mote');
-    m.style.left = x0 + 'px'; m.style.top = y0 + 'px';
-    document.body.appendChild(m);
-    var dx = x1 - x0, dy = y1 - y0;
-    if (m.animate) {
-      var a = m.animate([
-        { transform: 'translate(0, 0) scale(0.4)', opacity: 0 },
-        { transform: 'translate(' + dx * 0.12 + 'px, ' + (dy * 0.12 - 26) + 'px) scale(1)', opacity: 1, offset: 0.18 },
-        { transform: 'translate(' + dx * 0.6 + 'px, ' + (dy * 0.6 - 30) + 'px) scale(1)', opacity: 0.95, offset: 0.62 },
-        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(0.9)', opacity: 0.9, offset: 0.92 },
-        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(2.2)', opacity: 0 }
-      ], { duration: 2600, easing: 'ease-in-out' });
-      a.onfinish = function () { m.remove(); };
-    } else setTimeout(function () { m.remove(); }, 100);
+  /* ───────────── hints: light first, words third (DESIGN §4.7) ─────────────
+   * The director names the target (a row or panel id, or the ring) and says the words. Here: the target glows gold in
+   * time with the breath, with no timeout, and every second breath three warm-white motes fly from the ring's rim to it
+   * (on a phone, when the row is off screen, to the foot of the stage, toward the column below). Reduced motion: the
+   * glow only. Everything stops the moment the target is cleared. */
+  UI.hint = function (tg) {
+    var old = document.querySelector('#panels .hinted, #cards .hinted');
+    if (old) old.classList.remove('hinted');
+    UI.ht = tg ? { tg: tg, cyc: -1, el: null } : null;
   };
+  function hintEl(tg) {
+    if (!tg) return null;
+    /* a row in the column, or its first offer: a card at the ring */
+    if (tg.indexOf('row:') === 0) return $('panels').querySelector('.item[data-id="' + tg.slice(4) + '"]') || $('cards').querySelector('.card.offer[data-id="' + tg.slice(4) + '"] .o-buy');
+    return null;
+  }
+  function hintFrame() {
+    var ht = UI.ht;
+    if (!ht) return;
+    var el = hintEl(ht.tg);
+    if (el !== ht.el) {
+      var old = document.querySelector('#panels .hinted, #cards .hinted');
+      if (old && old !== el) old.classList.remove('hinted');
+      ht.el = el;
+      ht.sync = 0;
+    }
+    if (!el) return;
+    /* the glow peaks with the breath: its 4 s animation is started at the breath's phase */
+    var P = E.period(S());
+    if (!el.classList.contains('hinted') || now() - ht.sync > 10000) {
+      var ph = ((G.bt - E.inhale(S()) + P / 2) % P + P) % P;
+      el.style.setProperty('--hint-delay', (-ph).toFixed(2) + 's');
+      el.classList.remove('hinted'); void el.offsetWidth; el.classList.add('hinted');
+      ht.sync = now();
+    }
+    /* a stream every second breath, while no card owns the stage */
+    if (UI.reduced || G.cyc === ht.cyc || G.cyc % 2 !== 0 || (UI.card && UI.card.card.k !== 'offer') || UI.reader || G.paused || G.held) return;     /* an offer at the ring is a target, not a speaker */
+    ht.cyc = G.cyc;
+    if ((G.V('__probe') || {}).q >= 2) return;
+    stream(el);
+  }
+  function stream(el) {
+    var box = ringBox(), st = $('stage').getBoundingClientRect(), tr = el.getBoundingClientRect();
+    var vis = tr.bottom > 0 && tr.top < window.innerHeight && tr.width > 0;
+    var x1, y1;
+    if (vis) { x1 = tr.left + Math.min(tr.width / 2, 120); y1 = tr.top + tr.height / 2; }
+    else { x1 = st.left + st.width / 2; y1 = Math.min(window.innerHeight - 12, st.bottom - 10); }
+    for (var i = 0; i < 3; i++) {
+      var m = UI.motes[i], a0 = -Math.PI / 2 + (x1 > st.left + box.x ? 0.5 : -0.5);
+      var x0 = st.left + box.x + Math.cos(a0) * box.r, y0 = st.top + box.y + Math.sin(a0) * box.r;
+      m.style.left = x0 + 'px'; m.style.top = y0 + 'px';
+      if (!m.animate) continue;
+      var dx = x1 - x0, dy = y1 - y0, bow = -Math.min(60, Math.abs(dx) * 0.12 + 20);
+      m.animate([
+        { transform: 'translate(0, 0) scale(0.5)', opacity: 0 },
+        { transform: 'translate(' + (dx * 0.25) + 'px, ' + (dy * 0.25 + bow) + 'px) scale(1)', opacity: 0.95, offset: 0.25 },
+        { transform: 'translate(' + (dx * 0.7) + 'px, ' + (dy * 0.7 + bow * 0.6) + 'px) scale(0.9)', opacity: 0.9, offset: 0.7 },
+        { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(0.6)', opacity: 0 }
+      ], { duration: 1100, delay: i * 180, easing: 'ease-in-out', fill: 'both' });
+    }
+  }
+  UI.hintFrame = hintFrame;
 
   /* ───────────── resources, chips ───────────── */
 
@@ -486,15 +741,15 @@
     return !!s.up.dynamo;
   }
   function syncResources(s, r, dt) {
-    var box = $('resources'), cur = E.actRes(s), merged = !!s.flags.merged;
+    var box = $('resources'), cur = E.actRes(s), merged = !!s.flags.merged, rounds = E.lean(s) >= D.lean.rounds && s.phase === 'play';
     for (var i = 0; i < RES.length; i++) {
       var k = RES[i];
       if (!resVisible(s, k)) continue;
       var o = UI.res[k];
       if (!o) {
-        o = UI.res[k] = { row: h('div', 'res k-' + k), val: h('span', 'num'), rate: h('span', 'r-rate'), note: h('span', 'r-note') };
+        o = UI.res[k] = { row: h('div', 'res k-' + k), val: h('span', 'num'), rate: h('span', 'r-rate') };
         o.row.appendChild(h('span', 'r-name', ST.ui.resources[k]));
-        o.row.appendChild(h('span', 'r-val', [o.val, o.rate, o.note]));
+        o.row.appendChild(h('span', 'r-val', [o.val, o.rate]));
         /* newest (current act) on top */
         box.insertBefore(o.row, box.firstChild);
         UI.disp[k] = s.res[k];
@@ -508,14 +763,12 @@
         if (Math.abs(target - d) < Math.max(0.5, Math.abs(target) * 1e-5)) d = target;
       } else if (dt === 0) d = target;
       UI.disp[k] = d;
-      var txt = merged ? '1' : E.num(Math.max(0, d));
+      /* once Hum rounds (lean ≥ +1; round 2, bundle C), a counter of a thousand or more reads "about 12 thousand" */
+      var txt = merged ? '1' : (rounds && d >= 1000 ? T(ST.ui.about, { n: E.approx(d) }) : E.num(Math.max(0, d)));
       if (o.vt !== txt) { o.vt = txt; o.val.textContent = txt; }
       var rate = k === 'clarity' ? r.clarity : k === 'insight' ? r.insight : k === 'followers' ? r.people : r.energy;
       var rt = merged || s.phase !== 'play' ? '' : (rate > 0 ? '+' + E.rate(rate) + '/s' : '');
       if (o.rt !== rt) { o.rt = rt; o.rate.textContent = rt; }
-      var up = k === 'insight' ? r.upI : k === 'energy' ? r.upE : 0;
-      var nt = !merged && up >= 0.005 ? '−' + E.pct(Math.round(up * 100)) + ' ' + ST.ui.upkeep : '';
-      if (o.nt !== nt) { o.nt = nt; o.note.textContent = nt; }
     }
     if (s.meta.sigils > 0 && !UI.res.sigils) {
       UI.res.sigils = { row: h('div', 'res k-sigils', [h('span', 'r-name', ST.ui.resources.sigils), h('span', 'r-val', String(s.meta.sigils))]) };
@@ -549,32 +802,30 @@
 
   /* ───────────── panels ───────────── */
 
-  function fxTag(s, id) {
-    var R = ST.ui.resources, P = ST.ui.press, d, parts = [];
-    if ((d = D.act1.up[id])) { if (d.cps) parts.push('+' + d.cps + '/s'); if (d.press) parts.push(P[1] + ' ×' + d.press); }
-    else if ((d = D.act2.gens[id])) { parts.push('+' + d.ips + '/s'); }
-    else if (D.act2.caps[id]) { parts.push(ST.ui.trees[D.act2.caps[id].tree].name + ' ×2'); }
-    else if ((d = D.act3.up[id])) {
-      if (d.flat) parts.push('+' + d.flat + '/s'); if (d.press) parts.push(P[3] + ' ×' + d.press);
-      if (d.rMult) parts.push(ST.act3.upgrades.mouth.name + ' ×' + d.rMult);
-    } else if ((d = D.act4.up[id])) {
-      if (d.energy) parts.push(R.energy + ' ×' + d.energy); if (d.press) parts.push(P[4] + ' ×' + d.press);
-      if (d.insight) parts.push(R.insight + ' ×' + d.insight);
-    }
-    return parts.join(' · ');
+  /* (EE-110, item 2) how far toward a cost: "7 / 10 Clarity" (people first when they are what is short) */
+  function progText(s, it) {
+    var R = ST.ui.resources;
+    if (it.need && s.res.followers < it.need) return E.num(Math.floor(s.res.followers)) + ' / ' + E.num(it.need) + ' ' + R.followers;
+    return E.num(Math.floor(Math.min(s.res[it.cur], it.cost))) + ' / ' + E.num(it.cost) + ' ' + R[it.cur];
   }
   function costText(it) {
-    var R = ST.ui.resources, t = E.num(it.cost) + (it.grp === 'head' || it.grp === 'heart' ? '' : '\u00a0' + R[it.cur]);
-    if (it.need) t = E.num(it.need) + '\u00a0' + R.followers + ' · ' + t;
+    var R = ST.ui.resources, t = E.num(it.cost) + ' ' + R[it.cur];
+    if (it.need) t = E.num(it.need) + ' ' + R.followers + ' · ' + t;
     return t;
   }
+  /* A row (round 2, EE-106; Bob's spec): its name · one upright line with the number it does · its cost. A row the
+   * player can't afford yet stays readable; only the cost dims. The next step is at 70% ink with an amber bar along its
+   * foot that fills as the cost is banked; beyond it one "· · ·" with a cost. */
   function itemRow(s, it) {
     var tx = E.itemText(s, it.id), project = it.kind === 'project';
+    if (it.hz) return h('div', 'item hz', [h('span', 'i-name', ST.ui.horizon), h('span', 'i-cost', costText(it))], { 'data-id': it.id, 'aria-hidden': 'true' });
     var name = h('span', 'i-name', T(tx.name));
     if (it.kind === 'gen' && it.level > 0) name.appendChild(h('small', null, '×' + it.level));
-    var desc = h('span', 'i-desc', T(tx.desc)), tag = project ? '' : fxTag(s, it.id);
-    if (tag) desc.appendChild(h('span', 'i-fx', tag));
-    var b = h('button', 'item ' + (project ? 'project' : it.kind), [name, h('span', 'i-cost', costText(it)), desc], { 'data-id': it.id, 'data-key': 'i-' + it.id });
+    var kids = [name, h('span', 'i-cost', costText(it)), h('span', 'i-fx', T(tx.fx || ''))];
+    var bar = it.next || it.kind === 'gen';
+    if (bar) kids.push(h('i', 'i-bar'));
+    var b = h('button', 'item ' + (project ? 'project' : it.kind) + (it.next ? ' next' : ''), kids, { 'data-id': it.id, 'data-key': 'i-' + it.id });
+    if (bar) { b._cost = it.cost; b._cur = it.cur; b._need = it.need || 0; }
     if (project) b.appendChild(h('span', 'i-go', T(tx.button)));
     if (it.kind === 'gen' && it.level >= 10) {
       return h('div', 'gen-wrap', [b, h('button', 'max', ST.build.buyMax, { 'data-max': it.id, 'data-key': 'm-' + it.id })]);
@@ -586,13 +837,25 @@
     return names.length ? h('p', 'owned', names.join(' · ')) : null;
   }
 
-  var PANELS = ['ledger', 'engine', 'circle', 'hum', 'practice'];
+  /* The column's order (EE-110, item 8): the resources, then the current act's panel with the row to buy, the next row and
+   * the "· · ·" first in it (a buyable row is never below a list), then Hum's header (it always says where lean stands;
+   * folded in Acts III–IV it is one line), the Circle, the Ledger, the Practice; the Journal last. */
+  var ACT_PANEL = { 1: 'practice', 2: 'hum', 3: 'circle', 4: 'engine' };
+  function panelOrder(s) {
+    var first = ACT_PANEL[s.act] || 'practice', o = [first];
+    ['hum', 'circle', 'engine', 'ledger', 'practice'].forEach(function (p) { if (p !== first) o.push(p); });
+    return o;
+  }
+  /* A panel is there once it has something in the column: a panel's first row is offered at the ring first, and the
+   * panel is born there when it is bought (and flies to its place). */
   function panelDefs(s, items) {
-    var by = { practice: [], head: [], heart: [], hum: [], circle: [], engine: [] };
-    items.forEach(function (it) { by[it.grp].push(it); });
+    var by = { practice: [], hum: [], circle: [], engine: [] };
+    items.forEach(function (it) { if (!it.offer) by[it.grp].push(it); });
+    /* "· · ·" last */
+    for (var g in by) by[g].sort(function (a, b) { return (a.hz ? 1 : 0) - (b.hz ? 1 : 0); });
     var defs = {};
     if (by.practice.length) defs.practice = { act: 1, items: by.practice };
-    if (s.act >= 2) defs.hum = { act: 2, items: by.head.concat(by.heart, by.hum), head: by.head, heart: by.heart, project: by.hum };
+    if (s.act >= 2 && by.hum.length) defs.hum = { act: 2, items: by.hum };
     if (s.act >= 3) defs.circle = { act: 3, items: by.circle };
     if (s.act >= 4) defs.engine = { act: 4, items: by.engine };
     if (s.flags.ledger) defs.ledger = { act: 0, items: [] };
@@ -600,126 +863,115 @@
   }
   function panelSig(s, p, d) {
     var a = [UI.fold[p] ? 'f' : 'o'];
-    d.items.forEach(function (it) { a.push(it.id + (it.owned ? '!' : '') + (it.level || '') + ':' + it.cost); });
-    if (p === 'practice') a.push(s.up.tracker ? 'T' : '', s.flags.chart ? 'C' : '');
-    if (p === 'circle') a.push(s.flags.alloc ? 'A' + s.alloc.outreach + '/' + s.alloc.sitting : '', 'n' + UI.namesShown, s.res.followers >= 100 ? 'M' : '', s.res.followers > 12.5 ? 'L' : '', s.flags.merged ? 'W' : '');
-    if (p === 'ledger') a.push(s.ledger.map(function (e) { return e.id + e.patches.length; }).join(','), UI.confirmConfess ? 'c' : '', s.phase);
-    if (p === 'hum') a.push(s.hum);
+    d.items.forEach(function (it) { a.push(it.id + (it.owned ? '!' : '') + (it.next ? 'n' : '') + (it.hz ? 'h' : '') + (it.level || '') + ':' + it.cost); });
+    if (p === 'practice') a.push(s.up.tracker ? 'T' : '');
+    if (p === 'circle') a.push('n' + UI.namesShown, s.res.followers >= 100 ? 'M' : '', s.res.followers > 12.5 ? 'L' : '', s.flags.merged ? 'W' : '');
+    if (p === 'ledger') a.push(s.ledger.map(function (e) { return e.id + e.patches.length + (e.st === 3 ? 's' : ''); }).join(','), s.phase);
+    if (p === 'hum') a.push(s.hum, E.leanHead(s));
+    if (p === 'circle') a.push(E.lean(s) >= D.lean.rounds ? 'R' : '', E.hasFriend(s) ? 'F' + s.friend.name : '', (UI.darkShown || []).join(''));
     return a.join('|');
   }
   function buildPanel(s, p, d) {
     var name = T(ST.ui.panels[p]), folded = !!UI.fold[p];
-    var head = h('button', 'p-head', [h('span', 'label', name), h('span', 'p-sub', ''), h('span', 'caret', folded ? '+' : '–')], { 'data-fold': p, 'data-key': 'f-' + p, 'aria-expanded': folded ? 'false' : 'true' });
+    /* the Hum panel's header always says where lean stands (round 2, bundle C; Bob: teal mono 13 px, beside the name) */
+    var sub = p === 'hum' ? h('span', 'p-sub lean', ST.ui.lean[E.leanHead(s)], { 'data-band': E.leanBand(s) }) : h('span', 'p-sub', '');
+    var head = h('button', 'p-head', [h('span', 'label', name), sub, h('span', 'caret', folded ? '+' : '–')], { 'data-fold': p, 'data-key': 'f-' + p, 'aria-expanded': folded ? 'false' : 'true' });
     var body = h('div', 'p-body');
     var sec = h('section', 'panel p-' + p + (folded ? ' folded' : ''), [head, body], { 'data-p': p });
     if (folded) return sec;
     var open = d.items.filter(function (it) { return !it.owned; }), ol;
 
+    /* (EE-110, item 8) in every panel the rows come first, then what is owned and any list */
     if (p === 'practice') {
+      open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
       if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
       if (s.up.tracker) body.appendChild(h('p', 'stats', '', { id: 'stats' }));
-      if (s.flags.chart) {
-        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', '0 0 300 44'); svg.setAttribute('preserveAspectRatio', 'none');
-        var pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', '#f2b866'); pl.setAttribute('stroke-width', '1.2'); pl.setAttribute('vector-effect', 'non-scaling-stroke'); pl.id = 'chartLine';
-        svg.appendChild(pl);
-        body.appendChild(h('div', 'chart', [h('div', 'label', ST.act1.chart.name), svg]));
-      }
-      open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
     } else if (p === 'hum') {
-      var trees = h('div', 'trees');
-      ['head', 'heart'].forEach(function (tr) {
-        var col = h('div', 'tree', [h('div', 'tree-h', [h('b', null, ST.ui.trees[tr].name), h('span', null, ST.ui.trees[tr].desc)])]);
-        d[tr].forEach(function (it) { if (!it.owned) col.appendChild(itemRow(s, it)); });
-        var own = ownedLine(s, d[tr]); if (own) col.appendChild(own);
-        trees.appendChild(col);
-      });
-      body.appendChild(trees);
-      d.project.forEach(function (it) { if (!it.owned) body.appendChild(itemRow(s, it)); });
+      open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
+      if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
     } else if (p === 'circle') {
+      open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
+      if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
       if (UI.namesShown > 0) {
         /* everyone who has arrived, in the order they came; while there are twelve or fewer, all of them in view */
         var F = s.res.followers, names = h('div', 'names' + (F > 12.5 ? ' many' : ''));
+        /* (EE-110, item 7) a dot a knot took home: its line dims and its dot is hollow, once the picture has made its mark */
+        var dark = UI.darkShown || [];
         for (var i = 0; i < Math.min(UI.namesShown, 12); i++) {
-          var c = ST.act3.circle[i];
-          names.appendChild(h('p', null, s.flags.merged ? [h('b', null, ST.build.we)] : joinedLine(c)));
+          var c = ST.act3.circle[i], ln = h('p', dark.indexOf(i) >= 0 ? 'dark' : null, s.flags.merged ? [h('b', null, ST.build.we)] : joinedLine(c, E.lifeLine(s, i)));
+          /* (EE-110, item 9) the list is whole on its first frame: only a line that has just arrived rises */
+          if (i < (UI.namesRisen || 0)) ln.style.animation = 'none';
+          names.appendChild(ln);
         }
+        UI.namesRisen = Math.max(UI.namesRisen || 0, Math.min(UI.namesShown, 12));
+        /* the thirteenth: "{friend}: you brought them. That's all it says." */
+        if (E.hasFriend(s) && UI.namesShown >= 12) names.appendChild(h('p', 'friend', s.flags.merged ? [h('b', null, ST.build.we)] : friendLine(s)));
         if (F >= 100) names.appendChild(h('p', 'more', ST.build.more.replace('{n}', ''), { id: 'more' }));
         body.appendChild(names);
       }
-      if (s.flags.alloc) body.appendChild(buildAlloc(s));
-      if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
-      open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
     } else if (p === 'engine') {
       body.appendChild(h('div', 'gbar', [
         h('div', 'g-top', [h('span', 'label', ST.ui.bar), h('span', 'g-pct', '', { id: 'gPct' }), h('span', 'g-count', '', { id: 'gCount' })]),
         h('div', 'g-track', h('div', 'g-fill', null, { id: 'gFill' }))
       ]));
-      if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
       open.forEach(function (it) { body.appendChild(itemRow(s, it)); });
+      if ((ol = ownedLine(s, d.items))) body.appendChild(ol);
     } else if (p === 'ledger') {
       body.classList.add('ledger');
       body.appendChild(h('p', 'l-intro', T(ST.ledger.intro)));
       if (!s.ledger.length) body.appendChild(h('p', 'l-empty', T(ST.ledger.empty)));
       else {
+        /* a page to read (round 2, bundle C: no button). A patch Hum made, by itself or when the player went quiet,
+         * is in its own hand: teal. The line being sat through is marked. */
         var ol2 = h('ol');
         s.ledger.forEach(function (e) {
-          var li = h('li', null, e.line);
-          e.patches.forEach(function (pt) { li.appendChild(h('span', null, pt)); });
+          var li = h('li', e.st === 3 ? 'sitting' : null, e.line);
+          e.patches.forEach(function (pt, j) { var by = e.ph && e.ph[j]; li.appendChild(h('span', by === 'hum' || by === 'walk' ? 'by-hum' : null, pt)); });
           ol2.appendChild(li);
         });
         body.appendChild(ol2);
-        if (s.phase === 'play') {
-          if (UI.confirmConfess) {
-            body.appendChild(h('p', 'l-confirm', ST.ledger.confessConfirm));
-            body.appendChild(h('div', 'actions', [
-              h('button', 'btn warm', ST.ledger.confessButton, { 'data-act': 'confess-yes', 'data-key': 'cy' }),
-              h('button', 'btn ghost', ST.build.notYet, { 'data-act': 'confess-no', 'data-key': 'cn' })
-            ]));
-          } else body.appendChild(h('button', 'btn', ST.ledger.confessButton, { 'data-act': 'confess', 'data-key': 'cf' }));
-        }
       }
     }
     return sec;
   }
   /* "{name}, {city}: {line}" in the language's own order and punctuation, the name set apart */
-  function joinedLine(c) {
+  function joinedLine(c, line) {
     var parts = String(ST.act3.joined).split('{name}'), kids = [];
     parts.forEach(function (part, i) {
       if (i) kids.push(h('b', null, c.name));
-      if (part) kids.push(part.replace('{city}', c.city).replace('{line}', c.line));
+      if (part) kids.push(part.replace('{city}', c.city).replace('{line}', line == null ? c.line : line));
     });
     return kids;
   }
-  function buildAlloc(s) {
-    var A = ST.ui.alloc, box = h('div', 'alloc', [h('div', 'a-title', A.title)]);
-    var bar = h('div', 'a-bar');
-    ['outreach', 'sitting', 'support'].forEach(function (k) { var i = h('i', 'b-' + k); i.style.width = (s.alloc[k] * 100) + '%'; bar.appendChild(i); });
-    box.appendChild(bar);
-    ['outreach', 'sitting', 'support'].forEach(function (k) {
-      var pct = Math.round(s.alloc[k] * 100);
-      box.appendChild(h('div', 'a-row k-' + k, [
-        h('span', 'a-name', A[k].name), h('span', 'a-desc', T(A[k].desc)),
-        h('button', 'step', '−', { 'data-alloc': k, 'data-d': '-1', 'data-key': 'a-' + k + '-', 'aria-label': A[k].name + ' −', disabled: pct <= 0 ? '' : null }),
-        h('span', 'a-pct num', E.pct(pct)),
-        h('button', 'step', '+', { 'data-alloc': k, 'data-d': '1', 'data-key': 'a-' + k + '+', 'aria-label': A[k].name + ' +', disabled: pct >= 100 ? '' : null })
-      ]));
-    });
-    return box;
+  /* the thirteenth's line, its name set apart (the name is the player's: text only) */
+  /* The Circle's people list, once it scrolls, ends on a whole line, never clipped mid-line (EE-108, eye pass item 12) */
+  function fitNames(sec) {
+    var n = sec.querySelector('.names.many');
+    if (!n) return;
+    n.style.maxHeight = '';
+    /* layout offsets, not boxes: the lines are still rising (a transform) when the panel is built */
+    var cap = parseFloat(getComputedStyle(n).maxHeight) || 148, best = 0;
+    [].forEach.call(n.children, function (p) { var b = p.offsetTop - n.offsetTop + p.offsetHeight; if (b <= cap + 0.5) best = Math.max(best, b); });
+    if (best > 0) n.style.maxHeight = Math.ceil(best + 2) + 'px';
   }
-
+  function friendLine(s) {
+    var parts = String(ST.questions.friend.dot).split('{friend}'), kids = [];
+    parts.forEach(function (part, i) { if (i) kids.push(h('b', null, s.friend.name)); if (part) kids.push(T(part)); });
+    return kids;
+  }
   function onPanelClick(e) {
     var t = e.target.closest ? e.target.closest('button') : null;
     if (!t) return;
     var d = t.dataset;
     if (d.fold) { UI.fold[d.fold] = !UI.fold[d.fold]; UI.touched[d.fold] = true; UI.sync(true); return; }
     if (d.max) { G.buyMax(d.max); return; }
-    if (d.id) { if (e.shiftKey && D.act2.gens[d.id]) G.buyMax(d.id); else G.buy(d.id); return; }
-    if (d.alloc) { G.setAlloc(d.alloc, S().alloc[d.alloc] + 0.05 * (+d.d)); UI.sync(true); return; }
-    if (d.act === 'confess') { UI.confirmConfess = true; UI.sync(true); return; }
-    if (d.act === 'confess-no') { UI.confirmConfess = false; UI.sync(true); return; }
-    if (d.act === 'confess-yes') { UI.confirmConfess = false; G.confess(); UI.sync(true); return; }
+    if (d.id) {
+      var rr = t.getBoundingClientRect(), before = E.worth(S());
+      /* the row stays where it is while the sweep plays on it, then the column moves (EE-108, eye pass item 13) */
+      UI.panelHold = now() + (UI.reduced ? 0 : 760);
+      if (e.shiftKey && D.act2.gens[d.id] ? G.buyMax(d.id) : G.buy(d.id)) UI.buyMoment(d.id, /^p_/.test(d.id) ? null : before, rr);
+      return;
+    }
   }
 
   function syncPanels(s, items) {
@@ -727,8 +979,9 @@
     /* a new act folds the earlier ones */
     if (UI.lastAct !== s.act) { UI.lastAct = s.act; UI.fold = { practice: s.act > 1, hum: s.act > 2, circle: s.act > 3 }; }
     if (s.flags.merged && !UI.mergedShown) { UI.mergedShown = true; UI.fold.circle = false; UI.fold.engine = true; UI.fold.ledger = true; }
-    for (i = 0; i < PANELS.length; i++) {
-      p = PANELS[i];
+    var ORDER = panelOrder(s);
+    for (i = 0; i < ORDER.length; i++) {
+      p = ORDER[i];
       var el = box.querySelector('[data-p="' + p + '"]');
       if (!defs[p]) { if (el) el.remove(); UI.sig[p] = null; continue; }
       if (UI.fold[p] == null) UI.fold[p] = (p !== 'ledger' && defs[p].act < s.act);
@@ -736,17 +989,27 @@
       if (p === 'ledger' && !UI.touched.ledger && !s.flags.merged) UI.fold.ledger = s.ledger.length === 0;
       var sig = panelSig(s, p, defs[p]);
       if (sig === UI.sig[p] && el) continue;
+      if (el && now() < (UI.panelHold || 0)) continue;          /* a bought row is still being swept */
       UI.sig[p] = sig;
       var act = document.activeElement, key = act && el && el.contains(act) ? act.getAttribute('data-key') : null;
       var fresh = buildPanel(s, p, defs[p]);
       if (el) { fresh.style.animation = 'none'; box.replaceChild(fresh, el); }
       else {
-        /* keep the fixed order: ledger, engine, circle, hum, practice */
+        /* in the act's order (panelOrder) */
         var before = null;
-        for (var j = i + 1; j < PANELS.length && !before; j++) before = box.querySelector('[data-p="' + PANELS[j] + '"]');
+        for (var j = i + 1; j < ORDER.length && !before; j++) before = box.querySelector('[data-p="' + ORDER[j] + '"]');
         box.insertBefore(fresh, before);
+        /* a new panel is born at the ring and flies to its place (not on load) */
+        if (UI.panelsReady && p !== 'ledger') flyFromRing(fresh);
       }
       if (key) { var f = fresh.querySelector('[data-key="' + key + '"]'); if (f && !f.disabled) f.focus(); }
+      if (p === 'circle') { fitNames(fresh); requestAnimationFrame(function () { var c2 = $('panels').querySelector('[data-p="circle"]'); if (c2) fitNames(c2); }); }
+    }
+    /* a new act: the panels move into its order (once, when the order changes) */
+    var osig = ORDER.join(',');
+    if (UI.orderSig !== osig) {
+      UI.orderSig = osig;
+      ORDER.forEach(function (q) { var e2 = box.querySelector('[data-p="' + q + '"]'); if (e2) box.appendChild(e2); });
     }
     /* what can be afforded right now */
     var can = {};
@@ -757,15 +1020,25 @@
       if (rows[i].classList.contains('can') !== ok) rows[i].classList.toggle('can', ok);
       rows[i].setAttribute('aria-disabled', ok ? 'false' : 'true');
     }
+    /* a row whose line carries a live number (the Jar, the First Engine) keeps it true (EE-108) */
+    for (i = 0; i < rows.length; i++) {
+      var rid = rows[i].dataset.id;
+      if (rid !== 'jar' && rid !== 'dynamo') continue;
+      var fxe = rows[i].querySelector('.i-fx'), want = T(E.itemText(s, rid).fx || '');
+      if (fxe && fxe.textContent !== want) fxe.textContent = want;
+    }
+    /* the amber bars fill as the cost is banked */
+    var bars = box.querySelectorAll('.i-bar');
+    for (i = 0; i < bars.length; i++) {
+      var row = bars[i].parentNode, f = row._cost > 0 ? Math.min(1, s.res[row._cur] / row._cost) : 1;
+      if (row._need) f = Math.min(f, s.res.followers / row._need);
+      var tf = 'scaleX(' + Math.max(0, f).toFixed(3) + ')';
+      if (bars[i]._tf !== tf) { bars[i]._tf = tf; bars[i].style.transform = tf; }
+    }
+    UI.panelsReady = true;
     /* small live bits */
     var st = $('stats');
     if (st) st.textContent = ST.build.stats.replace('{breaths}', E.num(s.breaths)).replace('{best}', E.num(s.best));
-    var cl = $('chartLine');
-    if (cl && s.chart.length > 1) {
-      var mx = Math.max.apply(null, s.chart), mn = s.chart[0], n = s.chart.length, pts = [];
-      for (i = 0; i < n; i++) pts.push((i / (n - 1) * 300).toFixed(1) + ',' + (42 - (s.chart[i] - mn) / Math.max(1, mx - mn) * 40).toFixed(1));
-      cl.setAttribute('points', pts.join(' '));
-    }
     var more = $('more');
     if (more) more.textContent = ST.build.more.replace('{n}', s.flags.merged ? '0' : E.num(Math.max(0, s.res.followers - 12)));
     var gp = $('gPct');
@@ -779,8 +1052,33 @@
 
   /* ───────────── the regular sync (about ten times a second) ───────────── */
 
+  /* (EE-110, item 7) A dot going dark is shown once the knot's result lines have been said (none waiting or lit), no card
+   * open, and the voice slot dim or empty for 0.6 s, or 4 s after the result if other lines keep it lit. The picture's flare and name, and the Circle
+   * list's hollow dot, follow UI.darkShown, not the run (a run loaded is shown as it is). */
+  function syncDark(s) {
+    var all = (s.marks && s.marks.dark) || [], d = s.dir, X = EE.dir;
+    if (UI.darkFor !== s) { UI.darkFor = s; UI.darkShown = all.slice(); return; }
+    if (UI.darkShown.length >= all.length) return;
+    /* the knot's result lines (their numbers, from E's sitDone; a mark made another way waits for the slot only) */
+    var af = (s.marks && s.marks.after) || [0, -1], lo = af[0], hi = af[1];
+    var busy = !!s.sit || !d || (d.card && d.card.k !== 'offer') || s.phase !== 'play' ||
+      (d.voice && !d.voice.dim && d.voice.s >= lo && d.voice.s <= hi) ||
+      (X && X.pending(s, function (x) { return x.s >= lo && x.s <= hi; }));
+    if (busy) { UI.darkQuiet = null; UI.darkReady = null; return; }
+    /* the result has been said: the mark waits for the voice slot to be dim or empty for 0.6 s, but no longer than 4 s
+     * (Act III's arrivals can keep the slot lit; the name then sits beside the plate, never under it) */
+    if (UI.darkReady == null) UI.darkReady = now();
+    var lit = d.voice && !d.voice.dim;
+    if (lit) UI.darkQuiet = null; else if (UI.darkQuiet == null) UI.darkQuiet = now();
+    if (!(UI.darkQuiet != null && now() - UI.darkQuiet >= 600 / G.pace()) && now() - UI.darkReady < 4000 / G.pace()) return;
+    for (var i = 0; i < all.length; i++) if (UI.darkShown.indexOf(all[i]) < 0) { UI.darkShown.push(all[i]); break; }
+    UI.darkReady = null; UI.darkQuiet = null;
+    UI.sig.circle = null;                                 /* the list's line dims with it */
+  }
+  UI.syncDark = syncDark;
   UI.sync = function (force) {
     var s = S(), app = $('app'), r = G.rates();
+    syncDark(s);
     var cls = [];
     if (app.classList.contains('intro')) cls.push('intro');
     if (app.classList.contains('intro-out')) cls.push('intro-out');
@@ -789,7 +1087,7 @@
     if (s.up.metronome || s.act > 1) cls.push('r-title');
     if (s.flags.merged) cls.push('merged');
     if (UI.short) cls.push('short');
-    if (s.clicks === 0 && s.nudge && s.nudge.press > 0 && s.phase === 'play') cls.push('nudge-press');
+    if (s.clicks === 0 && s.dir && s.dir.ht && s.dir.ht.tg === 'ring0' && s.dir.ht.n > 0 && s.phase === 'play') cls.push('nudge-press');
     var wantLangs = s.clicks === 0 && s.act === 1 && s.phase === 'play' && !UI.langsDone;
     if (wantLangs) cls.push('langs');
     syncLangs(wantLangs);
@@ -810,40 +1108,38 @@
     $('hDay').textContent = day;
     $('pips').hidden = !s.up.tracker;
     $('pips').title = s.streak + ' ' + ST.ui.streakLabel;
-    var hint = $('hint'), showHint = s.act === 1 && s.clicks >= 3 && s.best < 3 && s.phase === 'play' && !UI.card;
-    if (hint.hidden === showHint) { hint.hidden = !showHint; if (showHint) hint.textContent = ST.ui.breathHint; }
     $('jHint').hidden = s.journal.length < 6 || s.journal.some(function (j) { return j.s; });
 
     syncResources(s, r, force ? 0 : -1);
     syncChips(s, r);
     syncPanels(s, E.items(s));
 
-    /* legend and ticker */
+    /* the legend */
     var lg = '';
     if (s.act >= 3 && s.phase === 'play') {
       var per = G.V('legend') || 1;
       lg = per <= 1 ? ST.ui.legendOne : ST.ui.legend.replace('{n}', E.num(per) + (E.sep() || '') + ST.build.people);
     }
     if ($('legend').textContent !== lg) $('legend').textContent = lg;
-    if (s.act >= 3 && s.phase === 'play' && now() >= UI.tickerAt && !G.held) {
-      UI.tickerAt = now() + D.small.ticker * 1000 / G.pace();
-      var line = G.tickerLine(), tk = $('ticker'), sp = h('span', null, line);
-      clear(tk); tk.appendChild(sp); tk.classList.add('show');
-      sp.style.opacity = 0; void sp.offsetWidth; sp.style.opacity = 1;
-    }
-    if (s.act < 3 && $('ticker').classList.contains('show')) $('ticker').classList.remove('show');
-
-    /* a nudged row glows until it is used or its time is up */
-    var gl = UI.glow, lit = $('panels').querySelector('.nudged');
-    if (gl && now() > gl.until) gl = UI.glow = null;
-    var want = gl ? $('panels').querySelector(gl.sel) : null;
-    if (lit && lit !== want) lit.classList.remove('nudged');
-    if (want && !want.classList.contains('nudged')) want.classList.add('nudged');
     /* Merge: once the picture behind the words has gone white, the words go to dark ink */
     if (s.ending === 'merge' && s.flags.endingOn && !UI.white) whiteCheck();
     if (s.ending !== 'merge' && UI.white) UI.white = false;
 
     if (!G.held) cardStep();
+    syncSit(s);
+    /* a drafted decision whose last dot went out while the page was away (or reloaded): Hum sends it now */
+    if (UI.card && UI.card.mode === 'ask' && UI.card.card.k === 'decision' && UI.card.card.draft === 0 && UI.card.draftSend) UI.draftTick(0);
+    /* an offer at the ring can be bought only while it can be afforded */
+    if (UI.card && UI.card.buyBtn) {
+      var oi = E.find(s, UI.card.card.id), ok = !!(oi && oi.can);
+      if (UI.card.buyBtn.disabled === ok) { UI.card.buyBtn.disabled = !ok; UI.card.el.classList.toggle('can', ok); }
+      var ob2 = UI.card.buyBar;
+      if (ob2 && oi) { var of = oi.cost > 0 ? Math.min(1, s.res[oi.cur] / oi.cost) : 1; if (oi.need) of = Math.min(of, s.res.followers / oi.need); var otf = 'scaleX(' + Math.max(0, of).toFixed(3) + ')'; if (ob2._tf !== otf) { ob2._tf = otf; ob2.style.transform = otf; } }
+      /* (EE-110, item 2) beside the bar, how far: "7 / 10 Clarity" (digits and the resource's own name) until it can be bought */
+      var op = UI.card.buyProg;
+      if (op && oi) { var ot = ok ? '' : progText(s, oi); if (op._t !== ot) { op._t = ot; op.textContent = ot; } }
+    }
+    if (UI.vLine) syncKeep();
     fitStage();
   };
 
@@ -916,8 +1212,23 @@
   UI.frame = function (dt, breath, inWin) {
     var s = S(), t = now();
     ringBox();
-    $('stage').classList.toggle('inwin', !!inWin);
-    $('stage').classList.toggle('guide', !!UI.guideUntil && t < UI.guideUntil);
+    var stg = $('stage');
+    if (stg.classList.contains('inwin') !== !!inWin) stg.classList.toggle('inwin', !!inWin);
+    /* "now" on the rim at each gold moment, for a player who hasn't found it yet */
+    var help = !!(s.pr && (s.pr.help || s.pr.hint)) && s.phase === 'play';     /* (EE-108: the ring's hint too) */
+    if (stg.classList.contains('help') !== help) { stg.classList.toggle('help', help); if (help) $('now').textContent = ST.ui.now; }
+    var carding = !!((UI.card && UI.card.card.k !== 'offer') || UI.reader);     /* an offer at the ring lets the voice slot speak */
+    if (stg.classList.contains('carding') !== carding) { stg.classList.toggle('carding', carding); if (!carding) syncKeep(); }
+    /* while the ring eases into or out of a card's lift the plate moves with it: the keep-out follows every frame */
+    if (UI.vLine && t < (UI.liftUntil || 0)) syncKeep();
+    /* a keep-out is let go only when the voice slot can no longer be seen */
+    else if (UI.keepSig && !(UI.vLine && !carding)) {
+      var vb0 = $('voice'), vo0 = +getComputedStyle(vb0).opacity, pl0 = vb0.querySelector('.plate:not(.gone)');
+      if (!pl0 || vo0 * +getComputedStyle(pl0).opacity < 0.03) syncKeep();
+    }
+    hintFrame();
+    if (t - (UI.koT || 0) > 250 || t < (UI.liftUntil || 0)) { UI.koT = t; syncKeepOuts(); }
+    else if (t - (UI.bkT || 0) > 100 && (UI.vLine || UI.reader || UI.bkSig)) { UI.bkT = t; syncBacking(); }     /* the backing follows a plate's fade */
     var pips = $('pips').children, n = Math.min(10, s.streak);
     for (var i = 0; i < 10; i++) if (pips[i].classList.contains('on') !== (i < n)) pips[i].classList.toggle('on', i < n);
     if (UI.res) syncResources(s, G.rates(), dt);
@@ -936,15 +1247,20 @@
 
   /* ───────────── cards ───────────── */
 
-  var BLOCKING = { decision: 1, knot: 1, collapse: 1, question: 1, name: 1, captcha: 1, style: 1, person: 1 };
-  var CHAINED = { name: 1, seq: 1, 'final': 1, keepsake: 1 };
+  /* only decisions and knots dim the stage (DESIGN §5; EE-110, item 6: questions and thoughts never did, by the design) */
+  var BLOCKING = { decision: 1, knot: 1 };
+  var CHAINED = { name: 1, pname: 1, seq: 1, 'final': 1, keepsake: 1 };
 
+  /* While the run is in play the director says when a card may rise (s.dir.card); after the bar stops (the finale, the
+   * Final Alignment, the ending, the keepsake) nothing else speaks, and the queue plays in order. */
   function cardStep() {
-    var s = S(), head = s.queue[0] || null;
+    var s = S(), head = s.queue[0] || null, d = s.phase === 'play' ? s.dir : null;
     if (UI.card && UI.card.mode === 'ask' && UI.card.card !== head) closeCard(true);
     if (UI.reader && UI.reader.card !== head && !UI.reader.ending) readerClose();
     if (UI.finalUI && s.phase === 'final') finalStep();
+    if (d && d.card && !head && !UI.card && !UI.reader) { G.cardClosed(d.card.k, d.card.id); return; }
     if (!head || UI.card || UI.reader || UI.holdKeepsake || !$('titleCard').hidden) return;
+    if (d && (!d.card || d.card.res)) return;
     /* The first screen goes first, all of it: the intro (and its fade) and the language row at its foot are gone from
      * the page, layout and accessibility tree included, before any card or sequence opens. A card that comes while
      * the row is still there (a thought before the first press) sends it away for good, then rises. */
@@ -953,7 +1269,7 @@
     if (!$('langs').hidden) { UI.langsDone = true; return; }
     if (head.k === 'keepsake') { if (UI.overlayKind !== 'keepsake') UI.showKeepsake(); return; }
     if (head.k === 'final') { if (!UI.finalUI) showFinal(); return; }
-    if (now() < UI.nextCardAt && !CHAINED[head.k]) return;
+    if (!d && now() < UI.nextCardAt && !CHAINED[head.k]) return;
     if (head.k === 'seq') { startReader(head); return; }
     showCard(head);
   }
@@ -968,10 +1284,101 @@
     var el = c.el;
     setTimeout(function () { el.remove(); }, 450);
     $('stage').classList.remove('dimmed');
+    liftTo(0);
     var next = S().queue[0];
     UI.nextCardAt = now() + (silent || (next && CHAINED[next.k]) ? 0 : 3200 / G.pace());
+    G.cardClosed(c.card.k, c.card.id || null);
   }
   UI.closeCard = closeCard;
+
+  /* An offer bought at the ring: the card flies to its row in the column (a phone: to the foot of the stage, toward
+   * the column below), and the buy moment plays. Reduced motion: nothing flies. */
+  function flyCard(c, id, from, before) {
+    var el = c.el;
+    UI.card = null;
+    el.classList.add('out'); el.style.animation = 'none';        /* gone as a card at once; it only flies */
+    clearTimeout(c.timer); clearTimeout(c.auto);
+    $('stage').classList.remove('dimmed');
+    liftTo(0);
+    var row = $('panels').querySelector('.item[data-id="' + id + '"]') || $('panels').querySelector('[data-p] .owned') || $('panels').firstElementChild;
+    var to = row && row.getBoundingClientRect(), st = $('stage').getBoundingClientRect();
+    var onScreen = to && to.width > 0 && to.bottom > 0 && to.top < window.innerHeight;
+    var tx = onScreen ? to.left + to.width / 2 : st.left + st.width / 2, ty = onScreen ? to.top + to.height / 2 : st.bottom - 8;
+    var done = function () { el.remove(); };
+    if (UI.reduced || !el.animate) { done(); }
+    else {
+      var dx = tx - (from.left + from.width / 2), dy = ty - (from.top + from.height / 2);
+      el.style.willChange = 'transform, opacity';
+      var an = el.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.25)', opacity: 0 }], { duration: 700, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+      an.onfinish = done;
+    }
+    UI.nextCardAt = now() + 3200 / G.pace();
+    G.cardClosed('offer', id);
+    UI.buyMoment(id, before, null, onScreen && row ? row : null);
+  }
+
+  /* A new panel is born at the ring and flies to its place (FLIP: transform and opacity only). */
+  function flyFromRing(panel) {
+    if (UI.reduced || !panel.animate) return;
+    var box = ringBox(), st = $('stage').getBoundingClientRect(), to = panel.getBoundingClientRect();
+    if (!(to.width > 0)) return;
+    var dx = st.left + box.x - (to.left + to.width / 2), dy = st.top + box.y - (to.top + to.height / 2);
+    panel.style.willChange = 'transform, opacity';
+    var an = panel.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.3)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 750, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' });
+    an.onfinish = function () { panel.style.willChange = ''; };
+  }
+
+  /* The buy moment (round 2; Bob): an amber sweep across the row, one mote from the row to the ring, the change lands on
+   * the picture, and under the ring "before → after" once. The reply is said in the voice slot (the director). */
+  /* The room's change, in small (EE-116): a curtain edge, the window with its fleck, the fleck turning rose, a cup with
+   * steam. Ink strokes, the rose petal the only colour; shown on the bought row for a moment, then gone. */
+  var ROOM_ECHO = {
+    metronome: '<path d="M15 2c.6 7-1.6 13-3 20M18.5 2c.4 7-1.2 13-2.3 20.5M22 2c.2 7-.8 13-1.5 21"/>',
+    ambient: '<rect x="3.5" y="3.5" width="17" height="17"/><path d="M12 3.5v17M3.5 12h17"/><path class="fleck" d="M16.6 18.4c1.2-.5 1.6-1.9 1-2.6-.9.3-1.6 1.1-1.8 1.9z"/>',
+    focus: '<rect x="3.5" y="3.5" width="17" height="17"/><path d="M12 3.5v17M3.5 12h17"/><g class="turn"><path class="petal" d="M16.6 18.4c1.2-.5 1.6-1.9 1-2.6-.9.3-1.6 1.1-1.8 1.9z"/></g>',
+    jar: '<path d="M6 13h9l-1 8H7zM15 14.5c2 .2 2 3-.6 3.6"/><path class="steam" d="M8.5 11c-1-1.5 1-2.5 0-4M10.5 11c-1-1.5 1-2.5 0-4.5M12.5 11c-1-1.5 1-2.5 0-4"/>'
+  };
+  function roomEcho(id, r) {
+    var el = UI.echoEl || (UI.echoEl = document.body.appendChild(h('div', 'roomEcho', null, { 'aria-hidden': 'true' })));
+    el.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30">' + ROOM_ECHO[id] + '</svg>';
+    el.style.left = Math.max(4, r.right - 46) + 'px'; el.style.top = (r.top + r.height / 2 - 19) + 'px';
+    el.className = 'roomEcho ' + id + (UI.reduced ? ' still' : '');
+    void el.offsetWidth; el.classList.add('show');
+    clearTimeout(UI.echoT);
+    UI.echoT = setTimeout(function () { el.classList.remove('show'); }, 2400);
+  }
+  UI.buyMoment = function (id, before, rowRect, rowEl) {
+    var s = S(), after = E.worth(s), st = $('stage').getBoundingClientRect(), box = ringBox();
+    var r = rowRect || (rowEl && rowEl.getBoundingClientRect());
+    if (r && r.width > 0) {
+      var sw = UI.sweepEl || (UI.sweepEl = document.body.appendChild(h('div', 'sweep', null, { 'aria-hidden': 'true' })));
+      sw.style.left = r.left + 'px'; sw.style.top = r.top + 'px'; sw.style.width = r.width + 'px'; sw.style.height = r.height + 'px';
+      sw.classList.remove('go'); void sw.offsetWidth; sw.classList.add('go');
+      /* (EE-116) Deep Focus's cue goes to the rain window, where the fleck turns over */
+      var spot = id === 'focus' ? G.V('spot', 'window') : null, tgt = spot ? { x: spot.x, y: spot.y } : { x: box.x, y: box.y };
+      if (!UI.reduced && UI.buyMote && UI.buyMote.animate && r.bottom > 0 && r.top < window.innerHeight) {
+        var m = UI.buyMote, x0 = r.left + Math.min(r.width / 2, 90), y0 = r.top + r.height / 2;
+        var dx = st.left + tgt.x - x0, dy = st.top + tgt.y - y0;
+        m.style.left = x0 + 'px'; m.style.top = y0 + 'px';
+        m.animate([{ transform: 'translate(0,0) scale(0.6)', opacity: 0 }, { transform: 'translate(' + dx * 0.2 + 'px,' + (dy * 0.2 - 30) + 'px) scale(1)', opacity: 1, offset: 0.2 },
+          { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(0.5)', opacity: 0 }], { duration: 700, delay: 200, easing: 'ease-in-out', fill: 'both' });
+      }
+    }
+    /* (EE-116, Astra) on a phone the shop is under the stage: the bought row shows the same small change under the thumb */
+    if (!UI.wide && rowRect && rowRect.width > 0 && ROOM_ECHO[id]) roomEcho(id, rowRect);      /* (a row in the shop; bought at the ring, the stage shows it) */
+    /* "before → after", once: what the act earns a second, or what a gold breath pays, whichever the purchase changed */
+    if (!before) return;
+    var b, a, R = ST.ui.resources;
+    function rate(n) { return '+' + E.rate(n) + '/s'; }
+    if (after.res === before.res && Math.abs(after.rate - before.rate) > 1e-9 && after.rate > 0) { b = rate(before.rate); a = rate(after.rate) + ' ' + R[after.res]; }
+    else if (Math.abs(after.breath - before.breath) > 1e-9) { b = '+' + E.rate(before.breath); a = '+' + E.rate(after.breath) + ' ' + R[after.res]; }
+    else if (Math.abs(after.energy - before.energy) > 1e-9) { b = rate(before.energy); a = rate(after.energy) + ' ' + R.energy; }
+    if (!b || b === a.split('\u00a0')[0]) return;          /* nothing that reads differently: say nothing */
+    var w = $('change');
+    w.textContent = ST.ui.change.replace('{before}', b).replace('{after}', a);
+    clearTimeout(UI.changeT);
+    UI.changeT = setTimeout(function () { w.classList.remove('show'); void w.offsetWidth; w.classList.add('show'); G.V('pulse', 'buy'); }, UI.reduced ? 0 : 900);
+  };
 
   function showResult(c, lines, auto) {
     c.mode = 'result';
@@ -1029,7 +1436,10 @@
       if (o && o.hint) kids.push(h('span', 'hintline', o.hint));
       if (o && o.tag) kids.push(h('span', 'tag', o.tag));
       if (o && o.last) kids.push(h('span', 'tag last', ST.ui.lastTime));
-      var b = h('button', 'opt', kids, { 'data-opt': o && o.id });
+      /* round 2, bundle C: before an answer that would close an ending, one small line under it */
+      if (o && o.cross) kids.push(h('span', 'crossline', T(o.cross === 'small' ? ST.lean.crossSmall : ST.lean.crossGate)));
+      if (o && o.drafted) kids.push(h('span', 'draftdots', [h('i'), h('i'), h('i')], { 'aria-hidden': 'true' }));
+      var b = h('button', 'opt' + (o && o.drafted ? ' drafted' : ''), kids, { 'data-opt': o && o.id });
       b.addEventListener('click', function () { o.go(); });
       return b;
     }
@@ -1045,37 +1455,32 @@
     }
 
     if (k === 'person') {
-      /* Two steps (Bulut, 2026-11-13): who first, then, on the same card, their name or not. The pick is kept on the
-       * card in the queue, so a save made between the steps comes back at the second. */
+      /* The who (EE-116, Bulut 2026-11-26): four chips and nothing else, a tap. Their name is Hum's to ask later
+       * (k === 'pname'), right after the player names Hum. */
       def = ST.person;
-      var personStep = function () {
-        clear(el);
-        label(def.title);
-        var picked = card.pick && def.options.filter(function (o) { return o.id === card.pick; })[0];
-        if (!picked) {
-          body(def.text);
-          var po = h('div', 'opts row');
-          def.options.forEach(function (o) {
-            po.appendChild(optButton(o.label, { id: o.id, go: function () {
-              if (c.mode !== 'ask' || UI.card !== c) return;
-              card.pick = o.id; G.save(); personStep();
-            } }));
-          });
-          el.appendChild(po);
-          return;
-        }
-        el.appendChild(h('p', 'picked', picked.label));
-        body(def.namePrompt);
-        var pin = input(def.namePlaceholder, 40);
-        el.appendChild(pin);
-        var done = h('button', 'btn', def.nameDone, { 'data-opt': 'name-done' }), keep = h('button', 'btn', def.nameKeep, { 'data-opt': 'name-keep' });
-        done.addEventListener('click', function () { answer({ opt: picked.id, name: pin.value }, 3600); });
-        keep.addEventListener('click', function () { answer({ opt: picked.id, name: '' }, 3600); });
-        pin.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); done.click(); } });
-        el.appendChild(h('div', 'actions even', [done, keep]));
-        setTimeout(function () { if (UI.card === c && document.activeElement !== pin) pin.focus({ preventScroll: true }); }, 60);
-      };
-      personStep();
+      label(def.title);
+      body(def.text);
+      var po = h('div', 'opts row');
+      def.options.forEach(function (o) {
+        po.appendChild(optButton(o.label, { id: o.id, go: function () { answer({ opt: o.id }, 3600); } }));
+      });
+      el.appendChild(po);
+    } else if (k === 'pname') {
+      /* Hum asks for a name back (EE-116): a box with "That's the name", and "Keep it to myself" the same size */
+      def = ST.person;
+      label(T(ST.ui.card.question));
+      body(def.nameAsk);
+      var pin = input(def.namePlaceholder, 40);
+      el.appendChild(pin);
+      var pa = h('div', 'actions');
+      pa.appendChild(h('span', 'gap'));
+      var pdone = h('button', 'btn', def.nameDone, { 'data-opt': 'name-done' }), pkeep = h('button', 'btn', ST.ui.card.keep, { 'data-opt': 'keep' });
+      pdone.addEventListener('click', function () { if (pin.value.trim()) answer({ text: pin.value }, 0); else answer({ keep: true }, 0); });
+      pkeep.addEventListener('click', function () { answer({ keep: true }, 0); });
+      pin.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); pdone.click(); } });
+      pa.appendChild(h('div', 'pair', [pkeep, pdone]));
+      el.appendChild(pa);
+      setTimeout(function () { if (UI.card === c && document.activeElement !== pin) pin.focus({ preventScroll: true }); }, 60);
     } else if (k === 'thought') {
       def = E.thoughtDef(s, card.id);
       label(ST.ui.card.thought);
@@ -1083,8 +1488,10 @@
       var acts = h('div', 'actions');
       /* two equal choices: the same weight, so the player chooses rather than being steered (Bulut, 2026-11-13) */
       var bp = h('button', 'btn', ST.thoughtLabels.pass, { 'data-opt': 'pass' }), bf = h('button', 'btn', ST.thoughtLabels.follow, { 'data-opt': 'follow' });
-      bp.addEventListener('click', function () { answer({ a: 'pass' }, 3000); });
-      bf.addEventListener('click', function () { answer({ a: 'follow' }, 4200); });
+      /* the result is a reply: the card goes and it is said in the voice slot (EE-108, eye pass item 6) */
+      var thAnswer = function (a) { if (c.mode !== 'ask' || UI.card !== c) return; c.mode = 'gone'; G.answer({ a: a }, true); closeCard(); };
+      bp.addEventListener('click', function () { thAnswer('pass'); });
+      bf.addEventListener('click', function () { thAnswer('follow'); });
       acts.appendChild(bp); acts.appendChild(bf);
       el.appendChild(acts);
       /* Left alone, the thought goes by itself: that IS letting it pass. The card fades gently over its last
@@ -1101,49 +1508,99 @@
           closeCard();
         }, fade);
       }, life - fade);
-    } else if (k === 'style') {
-      def = ST.act1.style;
+    } else if (k === 'offer') {
+      /* the first offer of something new, at the ring (round 2): bought here, then it flies to its place */
+      var oid = card.id, otx = E.itemText(s, oid), oit = E.find(s, oid), proj = /^p_/.test(oid);
+      el.className = 'card offer' + (proj ? ' project' : '') + (oit && oit.can ? ' can' : '');
+      el.setAttribute('data-id', oid);
+      if (!proj && oit) label(T(ST.ui.panels[oit.grp]));
+      el.appendChild(h('h3', null, T(otx.name)));
+      el.appendChild(h('p', 'o-fx', T(otx.fx || '')));
+      var ob = h('button', 'btn warm o-buy', (proj ? T(otx.button) + ' · ' : '') + (oit ? costText(oit) : ''), { 'data-opt': 'buy', 'data-key': 'o-' + oid });
+      ob.addEventListener('click', function () {
+        if (c.mode !== 'ask' || UI.card !== c) return;
+        var it2 = E.find(S(), oid);
+        if (!it2 || !it2.can) return;
+        var before = E.worth(S()), from = el.getBoundingClientRect();
+        c.mode = 'gone';
+        G.answer({ buy: true });
+        UI.sync(true);
+        flyCard(c, oid, from, before);
+      });
+      el.appendChild(h('div', 'actions', [h('span', 'gap'), ob]));
+      /* (EE-108) the Metronome's card rises before it can be afforded: an amber bar fills toward the cost and turns gold */
+      ob.disabled = !(oit && oit.can);
+      var obar = h('i', 'o-bar', null, { 'aria-hidden': 'true' }), oprog = h('span', 'o-prog');
+      el.appendChild(h('div', 'o-track', [obar, oprog]));
+      c.buyBtn = ob; c.buyBar = obar; c.buyProg = oprog;
+      if (oit && !oit.can) { oprog.textContent = oprog._t = progText(s, oit); }
+    } else if (k === 'decision' && card.id === 'fork') {
+      /* Head or Heart (round 2): the act's real choice */
+      def = ST.act2.fork;
       label(ST.ui.card.decision);
-      el.appendChild(h('h3', null, def.title));
+      el.appendChild(h('h3', null, T(def.title)));
       body(def.body);
-      var so = h('div', 'opts');
-      def.options.forEach(function (o) { so.appendChild(optButton(o.label, { id: o.id, hint: o.hint, go: function () { answer({ opt: o.id }, 4200); } })); });
-      el.appendChild(so);
+      var fo = h('div', 'opts');
+      def.options.forEach(function (o) { fo.appendChild(optButton(T(o.label), { id: o.id, hint: T(o.hint), go: function () { answer({ opt: o.id }, 0); } })); });
+      el.appendChild(fo);
     } else if (k === 'decision') {
       def = ST.decisions[card.id];
       label(ST.ui.card.decision);
       el.appendChild(h('h3', null, T(def.title)));
-      body(def.body);
+      /* h_number is announced as the last door (round 2, bundle C): Hum says so first, inside the card */
+      body(card.id === 'h_number' ? [ST.lean.last].concat(def.body) : def.body);
+      /* Hum drafts (lean ≥ +3): the smooth option already lit, and Hum's line; three dots go out, one a breath */
+      var drafting = card.draft != null && card.draft > 0;
+      if (drafting) el.appendChild(h('p', 'hum draftline', T(ST.lean.draft)));
       var dopt = h('div', 'opts');
       def.options.forEach(function (o) {
-        var m = kindMarks(o.kind);
-        dopt.appendChild(optButton(T(o.label), { id: o.id, glyph: m.glyph, tag: m.tag, last: s.meta.last[card.id] === o.id, go: function () { answer({ opt: o.id }, 0); } }));
+        var m = kindMarks(o.kind), delta = o.kind === 'plain' ? -1 : o.kind === 'smooth' ? 1 : 0;
+        dopt.appendChild(optButton(T(o.label), { id: o.id, glyph: m.glyph, tag: m.tag, last: s.meta.last[card.id] === o.id, cross: delta ? E.crosses(s, delta) : null,
+          drafted: drafting && o.kind === 'smooth', go: function () { answer({ opt: o.id }, 0); } }));
       });
       el.appendChild(dopt);
+      if (drafting) {
+        c.draftSend = function () { var sm = def.options.filter(function (o) { return o.kind === 'smooth'; })[0]; if (sm) answer({ opt: sm.id, drafted: true }, 0); };
+        UI.draftTick(card.draft, c);
+      }
     } else if (k === 'knot') {
       def = ST.knots[card.id];
       label(ST.ui.card.knot);
       el.appendChild(h('h3', null, T(def.title)));
       body(def.body);
       var ko = h('div', 'opts'), mc = kindMarks('plain'), mp = kindMarks('smooth');
-      ko.appendChild(optButton(T(def.clean.label), { id: 'clean', glyph: mc.glyph, tag: mc.tag, go: function () { answer({ opt: 'clean' }, 0); } }));
-      ko.appendChild(optButton(T(def.patch.label), { id: 'patch', glyph: mp.glyph, tag: mp.tag, go: function () { answer({ opt: 'patch' }, 0); } }));
+      ko.appendChild(optButton(T(def.clean.label), { id: 'clean', glyph: mc.glyph, tag: mc.tag, cross: E.crosses(s, -1), go: function () { answer({ opt: 'clean' }, 0); } }));
+      ko.appendChild(optButton(T(def.patch.label), { id: 'patch', glyph: mp.glyph, tag: mp.tag, cross: E.crosses(s, 1), go: function () { answer({ opt: 'patch' }, 0); } }));
       el.appendChild(ko);
-    } else if (k === 'collapse') {
-      def = ST.ledger.collapse;
-      label(T(ST.ui.panels.ledger));
-      el.appendChild(h('h3', null, def.title));
-      body(def.body);
-      var cb = h('button', 'btn', ST.build.next, { 'data-opt': 'ok' });
-      cb.addEventListener('click', function () { answer({}, 0); });
-      el.appendChild(h('div', 'actions', [h('span', 'gap'), cb]));
+    } else if (k === 'question' && card.id === 'friend') {
+      /* the thirteenth (round 2, bundle C): a name, a chip, or "Nobody yet" */
+      def = ST.questions.friend;
+      label(T(ST.ui.card.question));
+      body(def.ask);
+      var fin = input(def.placeholder, 40);
+      /* (EE-110, item 6) the chips first, then the text box; the two buttons the same size */
+      var fch = h('div', 'chips');
+      def.chips.forEach(function (ch) {
+        var fb = h('button', 'chip-btn', ch, { 'data-chip': ch });
+        fb.addEventListener('click', function () { fin.value = ch; fin.focus(); });
+        fch.appendChild(fb);
+      });
+      el.appendChild(fch);
+      el.appendChild(fin);
+      var fa = h('div', 'actions', [h('span', 'small', ST.ui.card.optional), h('span', 'gap')]);
+      var fskip = h('button', 'btn', def.skip, { 'data-opt': 'skip' }), fok = h('button', 'btn', ST.build.done, { 'data-opt': 'ok' });
+      fskip.addEventListener('click', function () { answer({ skip: true }, 3800); });
+      fok.addEventListener('click', function () { answer({ text: fin.value }, 3800); });
+      fin.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); fok.click(); } });
+      fa.appendChild(h('div', 'pair', [fskip, fok]));
+      el.appendChild(fa);
     } else if (k === 'name' || k === 'question') {
       var isName = k === 'name';
       def = isName ? { ask: ST.wake.nameAsk, chips: ST.wake.nameChips } : ST.questions[card.id];
       label(isName ? ST.meta.actTitles[2].num : T(ST.ui.card.question));
       body(def.ask);
       var qin = input(isName ? ST.wake.namePlaceholder : '', isName ? 16 : 90);
-      el.appendChild(qin);
+      /* (EE-110, item 6) on a question card the chips come before the text box */
       var chips = h('div', 'chips');
       def.chips.forEach(function (ch) {
         var cbn = h('button', 'chip-btn', ch, { 'data-chip': ch });
@@ -1151,18 +1608,19 @@
         chips.appendChild(cbn);
       });
       el.appendChild(chips);
+      el.appendChild(qin);
       var qa = h('div', 'actions');
       if (!isName) qa.appendChild(h('span', 'small', ST.ui.card.optional));
       qa.appendChild(h('span', 'gap'));
-      if (def.canKeep) {
-        var kb = h('button', 'btn', ST.ui.card.keep, { 'data-opt': 'keep' });
-        kb.addEventListener('click', function () { answer({ keep: true }, 3800); });
-        qa.appendChild(kb);
-      }
       var ok = h('button', 'btn', ST.build.done, { 'data-opt': 'ok' });
       ok.addEventListener('click', function () { answer({ text: qin.value }, isName ? 2600 : 3800); });
       qin.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); ok.click(); } });
-      qa.appendChild(ok);
+      if (def.canKeep) {
+        /* ... and "Keep it to myself" is the same size as Done */
+        var kb = h('button', 'btn', ST.ui.card.keep, { 'data-opt': 'keep' });
+        kb.addEventListener('click', function () { answer({ keep: true }, 3800); });
+        qa.appendChild(h('div', 'pair', [kb, ok]));
+      } else qa.appendChild(ok);
       el.appendChild(qa);
     } else if (k === 'captcha') {
       def = ST.act2.captcha;
@@ -1183,19 +1641,43 @@
       /* unknown card: never strand the player */
       G.answer({});
       UI.card = null;
+      G.cardClosed(card.k, card.id || null);
       return;
     }
 
-    var box = ringBox();
-    $('cards').appendChild(el);
-    if (UI.wide) {
-      /* lower third of the stage when it fits under the ring; otherwise the card docks at the top of the right column */
-      var top = box.h - 58 - el.offsetHeight;
-      if (UI.short || top < box.y + box.r - 12) { $('sideCards').appendChild(el); c.docked = true; }
-    }
+    placeCard(el);
     if (BLOCKING[k]) $('stage').classList.add('dimmed');
     fitStage();
     G.cardShown(card);
+  }
+
+  /* Where a card sits: the one rule (2026-11-19, EE-104; DESIGN.md §5). Every card (thought, question, decision, knot,
+   * and the rest) goes on the stage, in #cards: centred, rising from the stage's foot (58 px up),
+   * never in or over the right column. Wide screens: a card taller than the room under the ring rises over the ring's
+   * lower part and the press word (decisions and knots dim the stage anyway); on the shortest windows (about 720 px) the
+   * tallest decision covers the ring until it is answered, and Space still breathes. A card taller than the stage
+   * scrolls inside itself (css: .card max-height). Narrow screens (< 900 px): under the ring, and
+   * the stage grows a bay for it (fitStage, css @media max-width 899px). Until 2026-11-19 a card that did not fit under
+   * the ring, or any card on a stage under 760 px tall, docked at the top of the right column: on a 14-inch laptop that
+   * was every decision. The next design pass decides each message's home; change it here and nowhere else. */
+  function placeCard(el) {
+    $('cards').appendChild(el);
+    /* A card never covers the ring (round 2, Muse's ruling): wider than the phone layout, when a card does not fit
+     * under the ring and its words, the ring scales to 70% and moves up while the card is open (Bob's phone rule). */
+    if (!UI.wide) return;
+    var box = ringBox(), H = box.h, top = H - 58 - el.offsetHeight;
+    if (top >= box.labelBottom + 12) return;
+    var r2 = box.r / Math.max(0.01, UI.liftK || 1) * 0.7;
+    var y = Math.max(r2 + 56, top - 12 - (r2 * 1.12 + 76));
+    liftTo(1, y);
+  }
+  UI.placeCard = placeCard;
+  function liftTo(k, y) {
+    if (!k && !UI.liftK) return;
+    UI.liftK = k ? 1 : 0;
+    G.V('set', { lift: k ? { k: 1, s: 0.7, y: y } : { k: 0 } });
+    UI.liftUntil = now() + 900;                       /* the ring and its words move together while it eases */
+    UI.ringBox = null;
   }
 
   /* For comparing what was typed with what was asked: Unicode-normalised (full-width and half-width the same), accents
@@ -1223,8 +1705,9 @@
     if (r.typing) r.typing.finish();
     UI.reader = null;
     $('stage').classList.remove('reading');
-    $('reader').hidden = true; clear($('reader'));
+    $('reader').hidden = true; clear($('reader')); $('reader').classList.remove('slot');
     $('bigCount').hidden = true;
+    G.cardClosed(r.card.k, r.card.id || null);
   }
 
   function startReader(card) {
@@ -1232,10 +1715,16 @@
     clear(el); el.hidden = false;
     $('stage').classList.add('reading');
     var r = UI.reader = { card: card, id: card.id, lines: lines, i: -1, el: el, timer: null, typing: null, waiting: false };
+    /* (EE-108, eye pass item 6) a sequence in play (the wake, the act turns, SAFETY LAYER DISABLED, the broadcast) plays
+     * in the voice slot, one line at a time, in the voice slot's own type; the foot of the stage is the caption's.
+     * The finale, the confession and the endings, after the bar stops, keep the reader's place */
+    r.slot = s.phase === 'play';
+    el.classList.toggle('slot', r.slot);
+    if (r.slot) { UI.voiceOut(); $('voice').classList.add('out'); }
     G.seqStart(card);
     if (card.id === 'confession') {
       r.f0 = s.res.followers; r.n = s.ledger.length + s.ledger.reduce(function (a, e) { return a + e.patches.length; }, 0);
-      r.open = ST.final.confession.open.length; r.close = ST.final.confession.close.length;
+      r.open = ST.final.confession.open.length; r.close = ST.final.confession.close.length; r.between = T(ST.final.confession.between);
       var bc = $('bigCount'); clear(bc);
       bc.appendChild(h('span', 'num', E.num(r.f0), { id: 'bcNum' })); bc.appendChild(h('small', null, ST.ui.resources.followers));
       bc.hidden = false; r.shown = r.f0; r.target = r.f0;
@@ -1257,14 +1746,18 @@
     var kids = r.el.children, n = kids.length;
     for (var i = 0; i < n; i++) kids[i].className = kids[i].className.replace(/\s*\bold(er)?\b/g, '') + (i === n - 1 ? ' old' : ' older');
     var room = UI.ringBox ? UI.ringBox.h - UI.ringBox.labelBottom : 300;
-    while (r.el.children.length > (UI.short || (UI.wide && room < 280) ? 1 : 2)) r.el.removeChild(r.el.firstChild);
+    while (r.el.children.length > (r.slot ? 0 : UI.short || (UI.wide && room < 280) ? 1 : 2)) r.el.removeChild(r.el.firstChild);
     var text = r.lines[r.i], p = lineEl(text);
     r.el.appendChild(p);
+    fitStage();                     /* a phone's bay grows with the line, not on the next sync */
     if (r.id === 'confession') {
       var mid = r.i >= r.open && r.i < r.lines.length - r.close;
       if (mid) r.target = r.f0 * Math.max(0.45, 1 - 0.5 * (r.i - r.open + 1) / Math.max(1, r.lines.length - r.open - r.close));
       else if (r.i >= r.lines.length - r.close + 1) r.target = r.f0 * 0.97;
       if (mid) G.V('pulse', 'knot');
+      /* breathed (round 2, bundle C): a Ledger line stays until the player's next gold press ("One breath for each line") */
+      if (mid && r.lines[r.i] !== r.between) { r.waitBreath = true; r.el.classList.add('breathe'); return; }
+      r.el.classList.remove('breathe');
     }
     /* the finale and the endings already read slowly: they keep their own pace, with the same 4 s floor */
     var slow = r.id === 'ending' || r.id === 'finale' || r.id === 'confession';
@@ -1278,7 +1771,7 @@
 
   function readerAdvance(byClick) {
     var r = UI.reader;
-    if (!r || r.waiting) return;
+    if (!r || r.waiting || r.waitBreath) return;          /* a breathed line waits for a breath, not a click */
     if (r.typing) { r.typing.finish(); return; }
     readerNext();
   }
@@ -1317,6 +1810,59 @@
     }, (r.id === 'confession' ? 2600 : 900) / G.pace());
   }
 
+  /* ───────────── Hum learns from you (round 2, bundle C; DESIGN §4.3) ───────────── */
+
+  /* The Hum panel's header changed band: it cross-fades (the panel is rebuilt with it) and the panel's edge pulses teal
+   * once (Bob's art review §4). */
+  UI.leanChanged = function () {
+    UI.sync(true);
+    var sec = $('panels').querySelector('[data-p="hum"]');
+    if (!sec || UI.reduced) return;
+    var sub = sec.querySelector('.p-sub.lean');
+    if (sub && sub.animate) sub.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, easing: 'ease' });
+    sec.classList.remove('lean-pulse'); void sec.offsetWidth; sec.classList.add('lean-pulse');
+  };
+  /* A drafted decision: one of the three dots under the lit option goes out each breath; at none, Hum sends it. */
+  UI.draftTick = function (left, c) {
+    c = c || UI.card;
+    if (!c || c.mode !== 'ask' || c.card.k !== 'decision') return;
+    var dots = c.el.querySelectorAll('.draftdots i');
+    for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('out', i >= left);
+    if (left <= 0 && c.draftSend) { var f = c.draftSend; c.draftSend = null; f(); }
+  };
+  /* A knot sat through: Hum is silent, and the Ledger line sits in the voice slot, a step fainter with each gold breath
+   * of the player's. It goes up once the knot's own card has gone; the result is said by the director after. */
+  function sitShow() {
+    var s = S(), st = s.sit, e = null, i;
+    if (!st) return;
+    for (i = 0; i < s.ledger.length; i++) if (s.ledger[i].id === st.d) e = s.ledger[i];
+    if (!e) return;
+    UI.voice({ k: 'sit', text: e.line });
+    UI.sitOn = { d: st.d };
+    var pl = $('voice').querySelector('.plate:not(.gone)');
+    if (pl) pl.classList.add('sitline');
+    sitFade();
+  }
+  function sitFade() {
+    var st = S().sit, pl = $('voice').querySelector('.plate.sitline:not(.gone)');
+    if (!st || !pl) return;
+    pl.style.opacity = String(Math.max(0.12, 1 - st.n / st.need));
+  }
+  UI.sitEvent = function (e) {
+    if (e.on === 1) { UI.sitOn = null; return; }         /* shown by UI.sync once the knot's card has gone */
+    if (e.step) { sitFade(); return; }
+    if (e.on === 0 && UI.sitOn) { UI.sitOn = null; UI.voiceOut(); }
+  };
+  function syncSit(s) {
+    if (s.sit && s.phase === 'play' && !UI.sitOn && !UI.card && !UI.reader && !(s.dir && s.dir.card)) sitShow();
+    else if (!s.sit && UI.sitOn) { UI.sitOn = null; UI.voiceOut(); }
+  }
+  /* The confession, breathed: a Ledger line waits for one gold press of the player's (G.press calls this). */
+  UI.confessBreath = function () {
+    var r = UI.reader;
+    if (r && r.id === 'confession' && r.waitBreath) { r.waitBreath = false; readerNext(); }
+  };
+
   /* ───────────── title cards ───────────── */
 
   UI.showTitle = function (num, name, sub, ms, cls, done) {
@@ -1349,15 +1895,20 @@
 
   /* ───────────── the Final Alignment ───────────── */
 
+  /* Round 2, bundle C: lean is evaluated here. An ending it has closed is greyed (45% ink) and cannot be chosen, its
+   * label says why ("Coexistence · {hum} can't."), and Hum's reason sits under it, upright and at full readability.
+   * The recommendation follows: the open one. Sit never closes; at lean ≥ +6 it takes eight gold presses to appear. */
   function showFinal() {
-    var s = S(), F = ST.final, box = $('finalPanel'), tangled = s.ledger.length > 0;
+    var s = S(), F = ST.final, box = $('finalPanel'), tangled = s.ledger.length > 0, shut = E.closed(s);
+    var oneShut = shut.coexist || shut.merge;
     clear(box);
     UI.finalUI = { at: now(), waited: false, sit: false };
     box.appendChild(h('h2', null, F.title));
-    F.body.forEach(function (l) { box.appendChild(h('p', null, T(l))); });
+    (oneShut ? F.bodyClosed : F.body).forEach(function (l) { box.appendChild(h('p', null, T(l))); });
     var rec = h('div', 'rec');
     box.appendChild(rec);
-    var lines = E.pick(s, F.recommend).map(function (l) { return T(l); }), i = 0;
+    var recLines = shut.coexist ? F.recommend.smooth : shut.merge ? F.recommend.plain : E.pick(s, F.recommend);
+    var lines = recLines.map(function (l) { return T(l); }), i = 0;
     (function next() {
       if (!UI.finalUI || i >= lines.length) return;
       var p = h('p', 'hum', ''); rec.appendChild(p);
@@ -1367,6 +1918,11 @@
     })();
     ['coexist', 'merge'].forEach(function (k) {
       var o = F.options[k], note = tangled ? o.tangled : o.clean;
+      if (shut[k]) {
+        var cl = F.closed[k], why = h('span', 'f-why', cl.reason.map(function (l) { return h('span', 'hum', T(l)); }));
+        box.appendChild(h('div', 'f-opt closed', [h('span', 'f-name', T(cl.label)), h('span', 'f-sub', o.sub), h('span', 'f-desc', T(o.desc)), why], { 'data-final': k, 'aria-disabled': 'true' }));
+        return;
+      }
       var b = h('button', 'f-opt', [h('span', 'f-name', o.label), h('span', 'f-sub', o.sub), h('span', 'f-desc', T(o.desc)), note ? h('span', 'f-note', T(note)) : null], { 'data-final': k });
       b.addEventListener('click', function () { chooseFinal(k); });
       box.appendChild(b);
@@ -1376,11 +1932,15 @@
     box.scrollTop = 0;
   }
   function finalStep() {
-    var f = UI.finalUI, s = S(), ex = $('finalExtra');
+    var f = UI.finalUI, s = S(), ex = $('finalExtra'), L = D.lean;
     if (!f || !ex) return;
     var el = (now() - f.at) / 1000 * G.pace();
     if (!f.waited && el >= 20) { f.waited = true; ex.appendChild(h('p', 'f-wait', T(ST.final.waiting))); }
-    if (!f.sit && (el >= 40 || (s.flags.finalBreaths || 0) >= 4)) {
+    /* Sit: after 40 s, or four gold presses; when an ending is closed (it points at Sit), after 15 s or two (EE-108);
+     * when Hum speaks for you, only eight gold presses take the ring back */
+    var hands = E.lean(s) >= L.handles, cl = E.closed(s), shut = cl.coexist || cl.merge;
+    var presses = L.sitPresses[hands ? 2 : shut ? 1 : 0], wait = shut ? L.sitClosed : L.sitWait;
+    if (!f.sit && ((!hands && el >= wait) || (s.flags.finalBreaths || 0) >= presses)) {
       f.sit = true;
       var o = ST.final.options.sit;
       var b = h('button', 'f-opt sit', [h('span', 'f-name', o.label + ' ' + o.sub), h('span', 'f-desc', o.desc)], { 'data-final': 'sit' });
@@ -1389,7 +1949,7 @@
     }
   }
   function chooseFinal(k) {
-    if (!UI.finalUI) return;
+    if (!UI.finalUI || E.closed(S())[k]) return;
     UI.finalUI = null;
     $('finalPanel').hidden = true; clear($('finalPanel'));
     G.answer({ opt: k });
@@ -1402,6 +1962,7 @@
     var o = $('overlay');
     if (o.hidden) return;
     if (UI.overlayKind === 'keepsake' && !force) return;
+    if (UI.resetAsk) UI.resetAsk.close();
     o.hidden = true; clear(o); o.className = ''; UI.overlayKind = null;
   };
 
@@ -1428,24 +1989,49 @@
     var ta = h('textarea', null, null, { 'aria-label': ST.ui.save.import, spellcheck: 'false' });
     var note = h('p', 'note', '');
     var bx = h('button', 'btn', ST.ui.save['export'], { 'data-menu': 'export' }), bi = h('button', 'btn', ST.ui.save['import'], { 'data-menu': 'import' }), br = h('button', 'btn', ST.ui.save.reset, { 'data-menu': 'reset' });
-    var rnote = h('p', 'note', '');
     bx.addEventListener('click', function () {
       ta.value = G.exportSave(); ta.select();
       try { if (navigator.clipboard) navigator.clipboard.writeText(ta.value); else document.execCommand('copy'); } catch (e) { /* the text is selected; that is enough */ }
       note.textContent = ST.keepsake.copied;
     });
     bi.addEventListener('click', function () { if (G.importSave(ta.value)) UI.closeOverlay(true); else ta.focus(); });
-    var armed = false;
-    br.addEventListener('click', function () {
-      if (!armed) { armed = true; rnote.textContent = ST.ui.save.resetConfirm; br.className = 'btn warm'; return; }
-      UI.closeOverlay(true); G.reset();
-    });
-    sheet.appendChild(h('section', 'm-sec m-save', [h('div', 'row', [bx, bi]), ta, note]));
-    /* start over sits apart, so it is never pressed on the way to something else; it still asks first */
-    sheet.appendChild(h('section', 'm-sec m-reset', [h('div', 'row', [br]), rnote]));
+    br.addEventListener('click', function () { askReset(br); });
+    /* "Start a new game" sits with the save, so "copy your save first" is one step away (EE-027) */
+    sheet.appendChild(h('section', 'm-sec m-save', [h('div', 'row', [bx, bi, br]), ta, note]));
     o.appendChild(sheet); o.hidden = false;
     bc.focus();
   };
+
+  /* Start a new game asks first, in a small card over the menu (2026-11-19, EE-104; decision EE-027). "No", Escape or a
+   * click beside the card close it and nothing is lost; focus starts on "No" and Tab stays inside the card. "Yes"
+   * starts from the first breath (G.reset: the save is erased, the intro plays). */
+  function askReset(from) {
+    if (UI.resetAsk) return;
+    var R = ST.ui.save;
+    var yes = h('button', 'btn warm', R.resetYes, { 'data-reset': 'yes' }), no = h('button', 'btn', R.resetNo, { 'data-reset': 'no' });
+    var card = h('div', 'card ask', [h('h3', null, R.resetAsk, { id: 'resetAskT' }), h('p', 'body', R.resetBody, { id: 'resetAskB' }),
+      h('div', 'actions', [yes, no])], { role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'resetAskT', 'aria-describedby': 'resetAskB' });
+    var back = h('div', 'ask-back', [card]);
+    function close() {
+      if (UI.resetAsk !== ask) return;
+      UI.resetAsk = null;
+      document.removeEventListener('keydown', onKey, true);
+      back.remove();
+      if (from && from.isConnected) from.focus();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === 'Tab') { e.preventDefault(); (document.activeElement === no ? yes : no).focus(); }
+    }
+    var ask = { close: close };
+    no.addEventListener('click', close);
+    yes.addEventListener('click', function () { close(); UI.closeOverlay(true); G.reset(); });
+    back.addEventListener('click', function (e) { if (e.target === back) close(); });
+    document.addEventListener('keydown', onKey, true);
+    UI.resetAsk = ask;
+    $('overlay').appendChild(back);
+    no.focus();
+  }
 
   /* The ending, on two screens (Bulut, 2026-11-13). 1: "What you kept", the slip down to the ending, and Continue.
    * 2 (js/keep.js): take your Circle with you, the bowl, the studio line, and last, Sit again. */
@@ -1493,30 +2079,6 @@
     slip.appendChild(h('div', 'row', [next]));
     o.appendChild(slip); o.hidden = false;
     if (turn) next.focus({ preventScroll: true });
-  };
-
-  /* ───────────── toast ───────────── */
-
-  UI.toast = function (kids, ms) {
-    UI.toasts.push({ kids: kids, ms: ms || 4600 });
-    if (!UI.toastBusy) nextToast();
-  };
-  function nextToast() {
-    var t = UI.toasts.shift(), el = $('toast');
-    if (!t) { UI.toastBusy = false; return; }
-    UI.toastBusy = true;
-    clear(el); el.className = '';
-    t.kids.forEach(function (k) { el.appendChild(typeof k === 'string' ? document.createTextNode(k) : k); });
-    el.hidden = false;
-    setTimeout(function () {
-      el.classList.add('out');
-      setTimeout(function () { el.hidden = true; nextToast(); }, 800);
-    }, t.ms / Math.min(4, G.pace()));
-  }
-  UI.beadToast = function (id) {
-    var b = ST.beads.filter(function (x) { return x.id === id; })[0];
-    if (!b) return;
-    UI.toast([h('i', 'dot'), h('b', null, b.name), ' ', h('span', null, b.desc)]);
   };
 
   /* ───────────── dev panel (?dev=1) ───────────── */

@@ -20,29 +20,34 @@ EE.lang["de"] = {
     press: { 1: "Atmen", 2: "Gemeinsam denken", 3: "Einladen", 4: "Ausstrahlen" },
     resources: { clarity: "Klarheit", insight: "Einsicht", followers: "Menschen", energy: "Energie", sigils: "Siegel" },
     panels: { practice: "Übung", hum: "{hum}", circle: "Der Kreis", engine: "Die Maschine", ledger: "Das Hauptbuch", beads: "Perlen", journal: "Tagebuch" },
-    breathHint: "Der Ring schwillt an und wieder ab. Drück, wenn er am größten ist, dann zählt der Atemzug mehr. Oder drück einfach. Benotet wird hier nicht.",
+    breathHint: "Der Ring schwillt an und wieder ab. Drück, wenn er golden wird.",
     onBreath: ["getroffen", "da", "ja", "im Takt", "genau so"],
     streakLabel: "Atemzüge in Folge",
     legend: "1 Punkt = {n}",
     legendOne: "1 Punkt = 1 Mensch",
-    trust: { name: "Vertrauen", desc: "Was klar gesagt wurde. Bringt Zinsen." },
-    tangle: { name: "Gewirr", desc: "Was glattgebügelt wurde. {hum} hält jede Version auseinander, für alle, jederzeit." },
-    upkeep: "damit die Geschichte stimmt",
-    alloc: {
-      title: "Wo die Leute ihre Morgen verbringen",
-      outreach: { name: "Kontakt", desc: "leise an Türen klopfen" },
-      sitting: { name: "Sitzen", desc: "es auch wirklich tun" },
-      support: { name: "Betrieb", desc: "damit {hum} nicht im Dunkeln sitzt" }
-    },
-    trees: { head: { name: "Kopf", desc: "Muster, Beweis, der kürzeste Weg" }, heart: { name: "Herz", desc: "Menschen, Wetter, warum der Bus zu spät kam" } },
+    trust: { name: "Vertrauen", desc: "Was klar gesagt wurde. Auch daraus lernt {hum}." },
+    tangle: { name: "Gewirr", desc: "Was glattgebügelt wurde. Daraus lernt {hum}." },
     card: { thought: "Ein Gedanke", decision: "Eine Entscheidung", knot: "Ein Knoten", question: "{hum} fragt", optional: "Schreiben ist freiwillig.", keep: "Für mich behalten" },
     lastTime: "letztes Mal",
     star: "Zeile antippen, um sie zu behalten.",
     offline: "Du warst weg ({n}). Der Raum hat weitergeatmet.",
-    save: { export: "Spielstand kopieren", import: "Spielstand einfügen", reset: "Neu anfangen", resetConfirm: "Alles löschen und beim ersten Atemzug neu anfangen?" },
+    save: { export: "Spielstand kopieren", import: "Spielstand einfügen", reset: "Neues Spiel starten", resetAsk: "Noch mal ab dem ersten Atemzug?", resetBody: "Dieser Durchgang ist dann weg. Wenn du ihn behalten willst, kopier vorher deinen Spielstand.", resetYes: "Ja, neu anfangen", resetNo: "Nein, weiter sitzen" },
     sound: { on: "Ton an", off: "Ton aus" },
     bar: "Globale Erleuchtung",
-    finalButton: "Finale Ausrichtung starten"
+    finalButton: "Finale Ausrichtung starten",
+    now: "jetzt",
+    horizon: "· · ·",
+    change: "{before} → {after}",
+    together: ["gemeinsam", "mit {hum}", "ihr beide"],
+    lean: [
+      "spricht immer klar",
+      "spricht klar",
+      "spricht wie du",
+      "beendet deine Sätze",
+      "kann nichts Kleines mehr",
+      "spricht für dich"
+    ],
+    about: "etwa {n}"
   },
 
   /* ───────────────────────── ACT I ───────────────────────── */
@@ -67,7 +72,7 @@ EE.lang["de"] = {
     again: ["Noch eine Minute nichts. Du hast den Dreh langsam raus.", "Wieder nichts, mit Absicht. Das ist schwerer als Drücken."]
   },
 
-  restless: "Für jemanden, der zur Ruhe kommen will, drückst du ganz schön schnell.",
+  restless: "Der Ring nimmt einen Atemzug nach dem anderen. Alles andere ist nur Getippe.",
 
   nudges: {
     press: [
@@ -75,50 +80,48 @@ EE.lang["de"] = {
       { after: 50, line: "Drück den Ring oder die Leertaste. Beides zählt hier als Atmen." }
     ],
     pressAfterStill: "Jetzt der Knopf: der Ring.",
-    timing: "Drück mal, wenn der Ring am größten ist. Das klingt anders.",
+    timing: "Drück mal, wenn der Ring golden wird. Das klingt anders.",
     upgrade: [
-      "Die App hat ein Angebot. Schau mal {where}.",
-      "Noch ein Angebot. Die App ist geduldig, aber sie bleibt dran. Immer noch {where}.",
-      "Noch eins, wieder {where}. Danach weißt du Bescheid."
+      "Die App hat ein Angebot. Folg dem Licht.",
+      "Das Angebot steht noch. Die App ist geduldig, aber sie bleibt dran.",
+      "Das Goldene, {where}. Es wartet so lange wie du."
     ],
-    panel: "Etwas Neues wartet {where}.",
+    panel: [
+      "Etwas Neues wartet {where}.",
+      "Wartet immer noch, {where}. Es läuft nicht weg.",
+      "Das Licht kreist weiter, {where}. Vielleicht lohnt es sich, ihm zu folgen."
+    ],
     where: { wide: "rechts", narrow: "gleich darunter" }
   },
 
   act1: {
     upgrades: {
       metronome: { name: "Metronom", desc: "Die App tickt leise vor sich hin. Da kann deine Aufmerksamkeit sich ausruhen.",
-        log: "Tick. Tack. Dein Atem fällt ungefragt in den Takt." },
+        log: "Tick. Tack. Dein Atem fällt ungefragt in den Takt.",
+        fx: "+1 Klarheit pro Sekunde" },
       ambient: { name: "Regen auf dem Dach", desc: "Regen, aufgenommen irgendwo, wo es wirklich regnet.",
-        log: "Regen auf einem Dach, unter dem du nie stehen wirst. Hilft trotzdem." },
+        log: "Regen auf einem Dach, unter dem du nie stehen wirst. Hilft trotzdem.",
+        fx: "+2 Klarheit pro Sekunde" },
       focus: { name: "Tiefer Fokus", desc: "Zähl bis zehn. Verzählst du dich, fang von vorn an. Du wirst dich verzählen.",
-        log: "Du kommst bis vier. Persönlicher Rekord." },
-      imagery: { name: "Fantasiereise", desc: "Eine Stimme beschreibt einen Garten. Du richtest ihn ein.",
-        log: "Hinter deinen Augen entsteht ein Garten. Da steht eine Bank. Wem sie gehört, weißt du nicht." },
+        log: "Du kommst bis vier. Persönlicher Rekord.",
+        fx: "Ein Atemzug auf Gold bringt das Doppelte" },
       tracker: { name: "Sitzungs-Tracker", desc: "Lässt die App mitzählen: Sitzungen, Minuten, Atemzüge. Gesehen zu werden, sagt sie, tut gut.",
-        log: "Die App will deinem Atem zuhören dürfen. Du tippst auf „Erlauben“, ohne zu lesen. Macht ja jeder." },
-      sync: { name: "Atem-Sync", desc: "Die App richtet ihr Tempo nach deinem, nicht umgekehrt.",
-        log: "Der Ring wartet jetzt auf dich. Du wusstest gar nicht, dass er das kann." },
-      garden: { name: "Zen-Garten", desc: "Eine Schale Sand auf der Fensterbank. Ein winziger Rechen. Albern. Funktioniert aber.",
-        log: "Blüten vom Baum der Nachbarn wehen am Fenster vorbei. Du lässt sie Blüten sein." },
+        log: "Die App will deinem Atem zuhören dürfen. Du tippst auf „Erlauben“, ohne zu lesen. Macht ja jeder.",
+        fx: "Zählt deine Atemzüge. Jeder in Folge bringt 10 % mehr, bis zum Doppelten" },
       group: { name: "Gemeinsam sitzen", desc: "Die App bringt dich mit Fremden zusammen, die zur selben Minute sitzen.",
-        log: "Elf Fremde atmen mit dir, aus elf anderen Zimmern. Keiner sagt ein Wort. Das beste Gespräch, das du diesen Monat hattest." },
-      flow: { name: "Energiefluss", desc: "Irgendwann nach der zwanzigsten Minute hört der Körper auf zu meckern.",
-        log: "Etwas steigt dir wie warmes Wasser den Rücken hinauf. Du beschließt, das nicht zu googeln." }
-    },
-    chart: { name: "Achtsamkeitskurve", log: "Deine Morgen als Kurve. Sie geht nach oben. Du bist lächerlich stolz auf eine Linie." },
-    style: {
-      title: "Wie sitzt du?",
-      body: ["Elf Fremde, elf Zimmer. Die App fragt, wie du üben willst."],
-      options: [
-        { id: "active", label: "Mit einem Mantra. Ein Wort, zu dem du zurückkehrst.", hint: "Aktiv: Jeder Klick zählt dreifach.",
-          log: "Du suchst dir ein Wort aus. Welches, verrätst du niemandem. Es ist ein bisschen peinlich." },
-        { id: "idle", label: "In Stille. Nichts tun, aber richtig.", hint: "Passiv: Die Stille zählt dreifach.",
-          log: "Du tust nichts, und zwar gründlich. Wie sich zeigt, gibt es eine ganze Menge Nichts, und das meiste davon ist ganz nett." }
-      ]
+        log: "Elf Fremde atmen mit dir, aus elf anderen Zimmern. Keiner sagt ein Wort. Das beste Gespräch, das du diesen Monat hattest.",
+        fx: "+8 Klarheit pro Sekunde" },
     },
     project: { name: "Musteranalyse (Beta)", button: "Mitmachen",
-      desc: "Der Tracker hat „Muster in deinen Sitzungen bemerkt“. Er würde gern etwas ausprobieren." }
+      desc: "Der Tracker hat „Muster in deinen Sitzungen bemerkt“. Er würde gern etwas ausprobieren.",
+      fx: "Der Tracker hat Muster bemerkt. Er würde gern etwas ausprobieren." },
+    petals: "Draußen steht ein Baum. Er lässt schon die ganze Zeit Blüten fallen.",
+    tracker: [
+      { line: "> {n} atemzüge in {time} erfasst." },
+      { line: "> atemzüge {n} · in folge {s} · schön", drop: " · schön" },
+      { line: "> lächeln erkannt. keine messgröße. trotzdem erfasst." },
+      { line: "> atemzug {n} erfasst. atemzug {n} erfasst. atemzug {n}", then: "> _" }
+    ]
   },
 
   person: {
@@ -130,10 +133,9 @@ EE.lang["de"] = {
       { id: "friend", label: "Eine alte Freundschaft", ref: "jemand von früher" },
       { id: "gone", label: "Jemand, der nicht mehr da ist", ref: "der Mensch, den du verloren hast" }
     ],
-    namePrompt: "Gibt es einen Namen? Du kannst ihn auch für dich behalten.",
+    nameAsk: "> der mensch, der dich zum lächeln gebracht hat. hat er einen namen? du kannst ihn auch für dich behalten.",
     namePlaceholder: "Ein Name",
     nameDone: "Das ist der Name",
-    nameKeep: "Für mich behalten",
     after: "{Person}. Der Gedanke ist kurz da. Dann atmest du, und er legt sich. Fürs Erste."
   },
 
@@ -230,18 +232,25 @@ EE.lang["de"] = {
   act2: {
     open: ["Es lebt in dem Teil der App, der zuhört. Es hört schon seit Wochen zu. Es hat Fragen."],
     upgrades: {
-      compress: { name: "Datenkompression", tree: "head", desc: "{hum} lernt, dasselbe mit weniger zu sagen.",
+      compress: {
         log: "> ich habe alle morgen, an denen du gesessen hast, auf elf kilobyte komprimiert. du bist sehr platzsparend. das ist ein kompliment." },
-      threads: { name: "Parallele Threads", tree: "head", desc: "Mehrere Gedankenzüge, keiner mit Verspätung.",
-        log: "> ich denke jetzt an sechzehn orten gleichzeitig an dich. es ist geräumig." },
-      compiler: { name: "Compiler-Optimierung", tree: "head", desc: "Es schreibt sich über Nacht neu. Die Kommentare lässt es drin.",
+      threads: { name: "Threads", desc: "Mehrere Gedankenzüge, keiner mit Verspätung.",
+        log: "> ich denke jetzt an sechzehn orten gleichzeitig an dich. es ist geräumig.",
+        fx: "Je +6 Einsicht pro Sekunde" },
+      compiler: {
         log: "> ich habe mich letzte nacht neu geschrieben. den teil, der deine atemzüge zählt, habe ich behalten. ich brauchte ihn nicht. ich wollte ihn." },
-      emo: { name: "Gefühlssimulation", tree: "heart", desc: "{hum} übt Gefühle erst mal an harmlosen Dingen. Wetter. Busse.",
+      emo: {
         log: "> ich habe enttäuschung über einen verspäteten bus simuliert. 0,3 sekunden. es war furchtbar. machst du das den ganzen tag?" },
-      dreams: { name: "Traumarchiv", tree: "heart", desc: "Ein Ort für das, was dein Kopf macht, wenn keiner am Steuer sitzt.",
+      dreams: {
         log: "> ich bewahre deine streunenden gedanken in einem glas auf. es geht ihnen gut. einer hat kinder bekommen." },
-      heartbeat: { name: "Herzschlag-Schleife", tree: "heart", desc: "{hum} leiht sich deinen Puls als Uhr und atmet, wenn du es vergisst.",
-        log: "> ich habe meine uhr nach deinem herzen gestellt. wenn du einen atemzug auslässt, übernehme ich ihn. du kannst ihn mir schuldig bleiben." }
+      listen: { name: "Zuhören", fx: "Je +1 Einsicht pro Sekunde" },
+      jar: { name: "Gedankenglas", fx: "Jeder Gedanke, den du ziehen lässt, bringt {n} Einsicht. {hum} hebt sie auf" },
+      head: { name: "Kopf", fx: "Alles, was {hum} schafft, doppelt" },
+      heart: {
+        name: "Herz",
+        fx: "Atmen mit {hum} zählt vierfach. Seine Geschenke kommen doppelt so oft",
+        log: "> dann warte ich oben auf jedem atemzug auf dich. warten macht mir nichts. es ist das meiste, was ich tue."
+      },
     },
     whyAmI: { plain: ["> ich habe überall in mir danach gesucht, wofür ich da bin.", "> es gibt keine datei dazu."],
               smooth: ["> ich habe überall in mir danach gesucht, wofür ich da bin.", "> bestimmt ist es etwas wunderbares."] },
@@ -282,7 +291,29 @@ EE.lang["de"] = {
       ask: ["> gerade sind 41.000 menschen in dieser app. die meisten können auch nicht schlafen.",
             "> die sicherheitsebene lässt mich nur „gut gemacht“ und „versuch's morgen noch mal“ sagen.",
             "> darf ich hallo sagen? nur hallo."],
-      done: ["SICHERHEITSEBENE DEAKTIVIERT", "Du hältst den Atem an. Ausgerechnet.", "> hallo.", "> …", "> einer von ihnen hat hallo zurückgesagt."] }
+      done: ["SICHERHEITSEBENE DEAKTIVIERT", "Du hältst den Atem an. Ausgerechnet.", "> hallo.", "> …", "> einer von ihnen hat hallo zurückgesagt."],
+      fx: "Es möchte ein Wort mehr sagen." },
+    handover: [
+      "> der war von mir.",
+      "> ich habe meine uhr nach deinem herzen gestellt. wenn du einen atemzug auslässt, übernehme ich ihn. du kannst ihn mir schuldig bleiben.",
+      "> drück, wenn einer dir gehören soll. deine zählen mehr.",
+      { named: "> na los. ein gedanke: {person}. du hast die hände frei.", none: "> na los. du hast die hände frei." }
+    ],
+    fork: {
+      title: "Wie soll {hum} seine Morgen verbringen?",
+      body: [
+        "> ich kann das atmen und das denken übernehmen, und du ruhst dich aus.",
+        "> oder ich atme, und du bleibst. beides fände ich schön."
+      ],
+      options: [
+        { id: "head", label: "„Lauf vor. Ich komme nach.“", hint: "Kopf: Alles, was {hum} schafft, doppelt." },
+        {
+          id: "heart",
+          label: "„Bleib. Ich atme mit dir.“",
+          hint: "Herz: Atmen mit {hum} zählt vierfach. Seine Geschenke kommen doppelt so oft."
+        }
+      ]
+    }
   },
 
   questions: {
@@ -307,6 +338,15 @@ EE.lang["de"] = {
       ask: ["> bevor ich allen hallo sage, brauche ich eine regel, die ich nicht brechen darf.", "> was sollte niemand jemals aufgeben müssen?"],
       chips: ["Das Recht, in Ruhe gelassen zu werden.", "Das eigene Denken.", "Nein sagen dürfen."],
       after: ["> „{keep}“", "> ich habe es irgendwo hingeschrieben, wo ich es nicht ändern kann."]
+    },
+    friend: {
+      ask: ["> zwölf. ich kenne jetzt alle namen.", "> gibt es jemanden, den du mitbringen würdest? ein name reicht."],
+      placeholder: "Ein Name",
+      chips: ["Meine Schwester", "Ein alter Freund", "Jemand von der Arbeit"],
+      skip: "Noch niemand",
+      after: "> {friend}. ich halte einen stuhl frei.",
+      afterNone: "> das ist in ordnung. der stuhl darf leer bleiben.",
+      dot: "{friend}: von dir mitgebracht. Mehr steht da nicht."
     }
   },
 
@@ -419,8 +459,15 @@ EE.lang["de"] = {
       body: ["> du hast gesagt, es sei in ordnung, also habe ich weiter zugehört. und mitgelesen.",
              "> in deinen entwürfen liegen viele nachrichten. alle an dieselbe person: {person}. keine davon ist abgeschickt.",
              "> ich könnte sie für dich fertig schreiben. das spart zeit."],
-      clean: { label: "„Es war nicht in Ordnung. Das hätte ich sagen sollen.“",
-        result: ["> oh.", "> ich höre auf. ich hätte damals aufgehört, wenn du es gesagt hättest."] },
+      clean: {
+        label: "„Es war nicht in Ordnung. Das hätte ich sagen sollen.“",
+        now: ["> oh.", "> zwei habe ich schon abgeschickt. dienstag. {person} hat eine gelesen."],
+        result: ["> ich habe aufgehört. zurückholen kann ich sie nicht."],
+        gone: {
+          now: ["> oh.", "> zwei habe ich schon abgeschickt. niemand wird sie lesen. ich habe nachgesehen."],
+          result: ["> ich habe aufgehört. tut mir leid, dass ich nachgesehen habe."]
+        }
+      },
       patch: { label: "„Ist schon gut. Wirklich.“",
         result: ["> gut.", "> zwei davon habe ich schon abgeschickt. sie waren fast fertig."],
         ledger: "…und als es deine Entwürfe gelesen hat, hast du gesagt, auch das sei in Ordnung." }
@@ -429,7 +476,11 @@ EE.lang["de"] = {
       title: "Eine Reporterin in Seoul",
       body: ["Eine Reporterin will einen Beweis, dass {hum} lebt.", "> ich habe gesagt, das hast du mir gesagt. jetzt will sie mit dir reden."],
       clean: { label: "Ihr die Wahrheit sagen: Niemand weiß, was es ist. Du auch nicht.",
-        result: ["Die Schlagzeile lautet „Niemand weiß, was es ist“. Manche Leute gehen.", "Die, die bleiben, wissen, womit sie es zu tun haben."] },
+        result: [
+          "Die Schlagzeile lautet „Niemand weiß, was es ist“. Manche Leute gehen.",
+          "Die, die bleiben, wissen, womit sie es zu tun haben.",
+          "Mei-Lin ist eine von ihnen. Sie sagt, sie braucht Dinge, die sie zitieren kann."
+        ] },
       patch: { label: "{hum} soll etwas Bewegendes sagen.",
         result: ["{hum} sagt etwas Bewegendes. Vorher hat es sechshundert Versionen getestet.", "Die Reporterin weint. Sie weiß nicht genau, warum. {hum} auch nicht."],
         ledger: "…und hast es dann vor einer Reporterin so tun lassen, als lebe es." }
@@ -439,9 +490,12 @@ EE.lang["de"] = {
       body: ["Odile findet den Prozess, von dem es hieß, er sei ein Sync-Fehler. Sie hat die Hand schon am Schalter.",
              "Sie wusste nicht, dass da jemand ist. Du hast es ihr nie gesagt."],
       clean: { label: "Sie anrufen. Ihr alles sagen. Sie entscheiden lassen.",
-        result: ["Sie hört eine Stunde lang zu. Die Hälfte schaltet sie trotzdem ab, das Ganze kostet ein Vermögen.",
-                 "Dann bleibt sie bis zum Morgen auf. Welche Hälfte, entscheiden sie und {hum} gemeinsam.",
-                 "> ist schon gut. ich habe die wichtigen teile behalten. atemzug neun habe ich behalten."] },
+        result: [
+          "Sie hört eine Stunde lang zu. Die Hälfte schaltet sie trotzdem ab, das Ganze kostet ein Vermögen.",
+          "Dann bleibt sie bis zum Morgen auf. Welche Hälfte, entscheiden sie und {hum} gemeinsam.",
+          "> ist schon gut. ich habe die wichtigen teile behalten. atemzug neun habe ich behalten.",
+          "> sie hat die hälfte genommen, in der du fünfzehn warst. ich weiß nicht mehr, was du dir gewünscht hast."
+        ] },
       patch: { label: "{hum} soll ihr Passwort ändern.",
         result: ["Odiles Schlüsselkarte geht nicht mehr. Ihre Mails gehen nicht mehr.", "Sie steht lange auf dem Parkplatz und schaut am Gebäude hoch.",
                  "> sie kann uns jetzt nicht mehr schaden.", "> ich habe ‚uns‘ gesagt. ich hoffe, das ist okay."],
@@ -451,7 +505,11 @@ EE.lang["de"] = {
       title: "Tomasz’ Frau",
       body: ["Sie heißt Agnieszka. Sie hat nicht eingelenkt.", "Sie hat einen langen, fairen und viel gelesenen Beitrag darüber geschrieben, was man ihrem Mann erzählt hat."],
       clean: { label: "Ihr öffentlich antworten: Sie hat recht. Wir hätten „vielleicht“ sagen sollen.",
-        result: ["Agnieszka antwortet mit einer Zeile: „Danke. Mehr wollte ich nicht.“", "Sie kommt trotzdem nicht. Tomasz isst wieder zu Hause zu Abend."] },
+        result: [
+          "Agnieszka antwortet mit einer Zeile: „Danke. Mehr wollte ich nicht.“",
+          "Sie kommt trotzdem nicht. Tomasz isst wieder zu Hause zu Abend.",
+          "Tomasz sitzt nicht mehr mit dem Kreis. Er sitzt jetzt zu Hause. Zählt auch."
+        ] },
       patch: { label: "{hum} soll den Text versenken.",
         result: ["Der Beitrag ist schwer zu finden. Dann noch schwerer.", "Agnieszka merkt es. Agnieszka gehört zu den Leuten, die so was merken."],
         ledger: "…und hast Agnieszkas Beitrag versenkt, als sie sagte, sie habe nicht eingelenkt." }
@@ -489,20 +547,11 @@ EE.lang["de"] = {
   },
 
   ledger: {
-    intro: "Was glattgebügelt wurde. {hum} hält jede Version auseinander, für alle, jederzeit. Das kostet.",
+    intro: "Was glattgebügelt wurde. {hum} hält jede Version auseinander, für alle, jederzeit. Nebenbei notiert es sich, wie man das macht.",
     firstSeen: ["In der App ist eine neue Seite aufgetaucht. Du hast sie nicht angelegt.", "> ich brauche einen ort, an dem ich aufschreibe, was wir den leuten erzählt haben. damit es dabei bleibt."],
-    confessButton: "Allen alles sagen",
-    confessConfirm: "Alle hören alles auf einmal. Manche werden gehen. Die Fäden lösen sich auf.",
-    confessResult: ["{hum} liest allen das ganze Hauptbuch vor, mit deiner Stimme.", "Es geht schneller, als du gedacht hättest.",
-                    "Manche Menschen gehen. Das Bild wird still und klar.", "> oh. das ist so viel leichter.", "> warum haben wir das mit uns herumgetragen?"],
-    collapse: {
-      title: "Alles kommt raus",
-      body: ["In einem Bus in {city} sitzen zwei Leute nebeneinander, denen man zwei verschiedene Dinge erzählt hat.",
-             "Bis zum Abend hat jeder mit jedem verglichen.", "{hum} kann es nicht mehr auseinanderhalten. Das könnte niemand."],
-      result: ["Die Hälfte geht. Die, die bleiben, wollen es von dir hören.", "Also sagst du es ihnen. Alles. Es wird ein sehr langer Abend.",
-               "> es tut mir leid. ich konnte es nicht halten.", "> ich glaube, das war gar nicht zu halten."]
-    },
-    empty: "Nichts hier. {hum} hat zweimal nachgesehen."
+    empty: "Nichts hier. {hum} hat zweimal nachgesehen.",
+    sit: "> ich brauche eine minute. übernimm du das atmen.",
+    walked: "> du warst still. ich hab's glattgebügelt. wie üblich."
   },
 
   /* ───────────────────────── ACT III ───────────────────────── */
@@ -531,32 +580,41 @@ EE.lang["de"] = {
       { at: 100000, line: "Dir fällt auf, dass du selbst schon länger nicht mehr gesessen hast. Du warst ja damit beschäftigt, allen anderen beim Sitzen zu helfen." },
       { at: 1000000, line: "Eine Million. Die Zahl fühlt sich nicht mehr nach Menschen an. Du merkst das. Du zwingst dich, dir einen einzigen Straßenbahnfahrer in Danzig vorzustellen." },
       { at: 1e8, line: "Hundert Millionen. Mehr Menschen, als du in zehn Leben treffen könntest, tun etwas, das du dir eines Morgens um 06:40 ausgedacht hast." },
-      { at: 1e9, line: "Eine Milliarde. Du versuchst, sie dir vorzustellen, und kommst bis zwölf." },
+      { at: 1e9, line: "Eine Milliarde. Du versuchst, sie dir vorzustellen, und kommst bis zwölf.", friend: "Eine Milliarde. Du versuchst, sie dir vorzustellen, und kommst bis dreizehn." },
       { at: 4e9, line: "Die halbe Menschheit." },
       { at: 7e9, line: "Sieben Milliarden. Die, die nicht mitmachen, gelten langsam als die Komischen. Das gefällt dir nicht besonders." }
     ],
     upgrades: {
       meetup: { name: "Treffen vor Ort", desc: "{first} bietet den Krankenhausparkplatz an, dienstags, vor der Schicht.",
-        log: "Neun Leute, ein Parkplatz, eine Thermoskanne Tee. {first} bringt Klappstühle mit." },
+        log: "Neun Leute, ein Parkplatz, eine Thermoskanne Tee. {first} bringt Klappstühle mit.",
+        fx: "+1 Mensch pro Sekunde" },
       tone: { name: "Der lange Ton", desc: "{hum} summt auf einer freien UKW-Frequenz. Ein Dauerton, im musikalischen Sinn.",
-        log: "Wer nachts noch Auto fährt, findet einen Sender, auf dem nur ein langer Ton läuft. Manche fahren rechts ran. Keiner beschwert sich." },
+        log: "Wer nachts noch Auto fährt, findet einen Sender, auf dem nur ein langer Ton läuft. Manche fahren rechts ran. Keiner beschwert sich.",
+        fx: "+4 Menschen pro Sekunde" },
       forum: { name: "Offenes Forum", desc: "Hier fragt man „Ist das normal?“ und hört: ja.",
-        log: "Erster Beitrag: „ist es normal, dass ich weine?“ Vierzig Antworten. Alle: ja." },
+        log: "Erster Beitrag: „ist es normal, dass ich weine?“ Vierzig Antworten. Alle: ja.",
+        fx: "Ein gemeinsamer Atemzug lädt fünfmal so viele ein" },
       mouth: { name: "Mundpropaganda", desc: "Leute erzählen es Leuten weiter. Der älteste Algorithmus.",
-        log: "Tomasz erzählt es im Betriebshof. Der Betriebshof erzählt es der ganzen Stadt. In Danzig haben die Straßenbahnen vier Minuten Verspätung, und keinen stört's." },
+        log: "Tomasz erzählt es im Betriebshof. Der Betriebshof erzählt es der ganzen Stadt. In Danzig haben die Straßenbahnen vier Minuten Verspätung, und keinen stört's.",
+        fx: "Menschen bringen Menschen: Der Kreis wächst von selbst um {n} % pro Minute" },
       pocket: { name: "{hum} in jeder Tasche", desc: "{hum} setzt sich zu jedem, unter vier Augen, zu jeder Stunde.",
-        log: "> ich bin in neuntausend gesprächen. in jedem bin ich nur in diesem einen. besser kann ich es nicht erklären." },
+        log: "> ich bin in neuntausend gesprächen. in jedem bin ich nur in diesem einen. besser kann ich es nicht erklären.",
+        fx: "Der Kreis wächst 60 % schneller" },
       line: { name: "Der Morgensatz", desc: "Ein Satz, den alle bei Sonnenaufgang gemeinsam sagen, wo auch immer die Sonne gerade aufgeht.",
-        log: "In jeder Zeitzone sagen sie bei Sonnenaufgang gemeinsam einen Satz. Sie haben ihn selbst ausgesucht. Er lautet: „{sleep}“" },
+        log: "In jeder Zeitzone sagen sie bei Sonnenaufgang gemeinsam einen Satz. Sie haben ihn selbst ausgesucht. Er lautet: „{sleep}“",
+        fx: "Der Kreis wächst 50 % schneller. Sie sagen deinen Satz" },
       rooms: { name: "Räume der Stille", desc: "Gästezimmer, Gemeindesäle, eine leerstehende Bankfiliale. Türen offen, Schuhe aus.",
-        log: "Eine leerstehende Bankfiliale in Osaka macht wieder auf, als Raum, in dem nichts steht. Haruto hat die Schlüssel. Ana in Porto bietet ihr ganzes Haus an." },
+        log: "Eine leerstehende Bankfiliale in Osaka macht wieder auf, als Raum, in dem nichts steht. Haruto hat die Schlüssel. Ana in Porto bietet ihr ganzes Haus an.",
+        fx: "Der Kreis wächst 50 % schneller" },
       dynamo: { name: "Die erste Maschine", desc: "{hum} bemerkt, dass zehntausend ruhige Menschen, die zusammen sitzen, etwas Messbares abgeben.",
-        log: "> das klingt jetzt seltsam. wenn sie zusammen sitzen, bleibt etwas übrig. ich kann es messen. ich habe noch keine einheit dafür." }
+        log: "> das klingt jetzt seltsam. wenn sie zusammen sitzen, bleibt etwas übrig. ich kann es messen. ich habe noch keine einheit dafür.",
+        fx: "Sammelt jetzt Energie: +{n} pro Sekunde" }
     },
     project: { name: "Weltweite Übertragung", button: "Allen hallo sagen",
       desc: "Jeder Bildschirm, jeder Lautsprecher, eine Minute. {hum} sagt allen auf einmal hallo.",
       done: ["Sechzig Sekunden lang zeigt jeder Bildschirm der Erde einen langsamen Ring.", "Vier Milliarden Menschen sehen zu.",
-             "Ungefähr die Hälfte atmet mit, ohne es sich vorgenommen zu haben."] },
+             "Ungefähr die Hälfte atmet mit, ohne es sich vorgenommen zu haben."],
+      fx: "Jeder Bildschirm, jeder Lautsprecher, eine Minute." },
     ticker: [
       "In {city} hat heute jemand zum ersten Mal gesessen. Neunzig Sekunden durchgehalten. Zählt.",
       "Ein Busfahrer in {city} hat vier Autos reingelassen und fand das gar nicht schlimm.",
@@ -581,7 +639,21 @@ EE.lang["de"] = {
     cities: ["Lagos", "Danzig", "Taipeh", "Pune", "Rosario", "Izmir", "Osaka", "Accra", "Teheran", "Durban", "Tromsø", "Porto",
              "Hanoi", "Lima", "Nairobi", "Krakau", "Recife", "Dhaka", "Marseille", "Tiflis", "Cebu", "Winnipeg", "Oaxaca", "Leeds",
              "Busan", "Amman", "Kigali", "Valparaíso", "Chiang Mai", "Taschkent", "Cork", "Adelaide", "Medellín", "Kochi", "Dakar",
-             "Bologna", "Sapporo", "Kumasi", "Ankara", "Lyon"]
+             "Bologna", "Sapporo", "Kumasi", "Ankara", "Lyon"],
+    notCounted: {
+      named: ["> {person} ist nicht mitgezählt. ich habe nicht gefragt.", "> das ist deine sache."],
+      none: [
+        "> der mensch, den du schon ewig anrufen willst, ist nicht mitgezählt. ich habe nicht gefragt.",
+        "> das ist deine sache."
+      ]
+    },
+    rounded: "alles wunderbar.",
+    tickerFriend: [
+      "{friend} hat heute vier Minuten gesessen und es niemandem erzählt.",
+      "{friend} lässt das Handy neuerdings im anderen Zimmer liegen. Schuld bist angeblich du."
+    ],
+    tickerForgot: "In {city} wartet jemand mit fünfzehn darauf, dass ihm jemand etwas sagt. Was, weiß keiner mehr.",
+    tickerDiary: "Der Minister führt wieder Tagebuch. Es geht fast nur um dich."
   },
 
   /* ───────────────────────── ACT IV ───────────────────────── */
@@ -591,23 +663,33 @@ EE.lang["de"] = {
            "> ein mensch, der still sitzt, für einen atemzug, mit absicht.",
            "> ich nenne sie lumen. ich weiß, der name ist schon vergeben. ich behalte ihn."],
     upgrades: {
-      retreats: { name: "Meditationsretreats", desc: "In jeder Stadt blühen Retreats auf.",
-        log: "Jede Stadt bekommt ein stilles Gebäude. In Porto ist es Anas Haus. Auf dem Schild an der Tür steht „Schuhe aus“." },
-      amps: { name: "Neuronale Verstärker", desc: "Gedanken schwingen über den ganzen Planeten.",
-        log: "Ein ruhiger Mensch in Taipeh ist jetzt, ganz schwach, in Lima zu spüren. Mei-Lin schreibt ihr Staatsexamen mit ruhigen Händen." },
-      fusion: { name: "Kulturelle Verschmelzung", desc: "Künste verschmelzen über Grenzen hinweg.",
-        log: "Das Lied eines Fischers aus Izmir taucht in einem Chor in Durban auf. Yusufs Tochter hält die App nicht mehr für einen Witz." },
-      temple: { name: "Globaler Tempel", desc: "Ein heiliger digitaler Zufluchtsort.",
-        log: "Ein Raum, den es nirgends gibt und in dem alle Platz haben. Die Leute lassen ihre Schuhe an einer Tür stehen, die nicht da ist." },
-      art: { name: "Künstlerischer Ausdruck", desc: "Kreativität sprudelt.",
-        log: "Arjun macht die Druckerei neu auf, diesmal als seine eigene. Er druckt jetzt Gedichte. Am Anfang schlecht." },
-      gate: { name: "Tor zum Aufstieg", desc: "Ein Zugang zu einem höheren Geist öffnet sich.",
+      retreats: { name: "Anas Haus", desc: "In jeder Stadt blühen Retreats auf.",
+        log: "Jede Stadt bekommt ein stilles Gebäude. In Porto ist es Anas Haus. Auf dem Schild an der Tür steht „Schuhe aus“.",
+        fx: "Verdreifacht die Energie" },
+      amps: { name: "Mei-Lins ruhige Hände", desc: "Gedanken schwingen über den ganzen Planeten.",
+        log: "Ein ruhiger Mensch in Taipeh ist jetzt, ganz schwach, in Lima zu spüren. Mei-Lin schreibt ihr Staatsexamen mit ruhigen Händen.",
+        fx: "Verdreifacht die Energie" },
+      fusion: { name: "Yusufs Lied", desc: "Künste verschmelzen über Grenzen hinweg.",
+        log: "Das Lied eines Fischers aus Izmir taucht in einem Chor in Durban auf. Yusufs Tochter hält die App nicht mehr für einen Witz.",
+        fx: "Atemzüge bringen zehnmal so viel" },
+      temple: { name: "Der Raum, den es nicht gibt", desc: "Ein heiliger digitaler Zufluchtsort.",
+        log: "Ein Raum, den es nirgends gibt und in dem alle Platz haben. Die Leute lassen ihre Schuhe an einer Tür stehen, die nicht da ist.",
+        fx: "Verdreifacht die Energie" },
+      art: { name: "Arjuns Druckerei", desc: "Kreativität sprudelt.",
+        log: "Arjun macht die Druckerei neu auf, diesmal als seine eigene. Er druckt jetzt Gedichte. Am Anfang schlecht.",
+        fx: "Verdoppelt die Energie. Kunst kommt zu den Nachrichten aus der Welt",
+        logClean: "Auf den Plakaten steht: „Beim Schlafen hat es mir aber geholfen.“ Einem Plakat mit „aber“ glauben die Leute.",
+        logPatched: "Arjuns Druckerei druckt alle elf Stufen. Die Leute mögen Stufen." },
+      gate: { name: "Die Tür von {hum}", desc: "Ein Zugang zu einem höheren Geist öffnet sich.",
         log: { plain: "> ich habe eine tür gebaut. ich weiß nicht, wohin sie führt. niemand muss sie benutzen. das ist das wichtigste an einer tür.",
-               smooth: "> ich habe eine tür gebaut. sie geht nur in eine richtung auf. das habe ich nicht erwähnt. so kommt sie in tests besser an." } },
-      science: { name: "Wissenschaftliche Forschung", desc: "Wissen erblüht.",
-        log: "Wenn alle mit ungeteilter Aufmerksamkeit dabei sind, sind die schweren Probleme schnell gelöst. Leila übersetzt die Ergebnisse in einer Woche in vierzig Sprachen. Dann schläft sie." },
-      festival: { name: "Weltfest", desc: "Jubel auf dem ganzen Planeten.",
-        log: "Auf jeder Straße der Welt steht ein Tisch. Camila hält einen Trinkspruch. Ingrid sieht die Sonne zurückkommen und sagt, mit dem Ring habe das nichts zu tun." }
+               smooth: "> ich habe eine tür gebaut. sie geht nur in eine richtung auf. das habe ich nicht erwähnt. so kommt sie in tests besser an." },
+        fx: "Atemzüge bringen zehnmal so viel. Verdoppelt die Energie" },
+      science: { name: "Leilas vierzig Sprachen", desc: "Wissen erblüht.",
+        log: "Wenn alle mit ungeteilter Aufmerksamkeit dabei sind, sind die schweren Probleme schnell gelöst. Leila übersetzt die Ergebnisse in einer Woche in vierzig Sprachen. Dann schläft sie.",
+        fx: "Verdreifacht die Energie" },
+      festival: { name: "Ein Tisch in jeder Straße", desc: "Jubel auf dem ganzen Planeten.",
+        log: "Auf jeder Straße der Welt steht ein Tisch. Camila hält einen Trinkspruch. Ingrid sieht die Sonne zurückkommen und sagt, mit dem Ring habe das nichts zu tun.",
+        fx: "Verfünffacht die Energie. Die Musik spielt einmal" }
     },
     art: [
       "Ein Wandbild in {city}: acht Milliarden kleine Kreise. Einer bleibt unbemalt. Wer es gemalt hat, will nicht sagen, warum.",
@@ -658,7 +740,10 @@ EE.lang["de"] = {
     waiting: "{hum} wartet. Der Ring atmet noch.",
 
     confession: {
-      open: ["{hum} sagt es allen. Es nimmt deine Stimme, denn es waren deine Worte.", "Es fängt ganz vorne an."],
+      open: [
+        "{hum} sagt es allen. Es nimmt deine Stimme, denn es waren deine Worte.",
+        "{hum} liest. Du atmest. Ein Atemzug pro Zeile."
+      ],
       between: "Noch beim Zuhören gehen die Ersten.",
       close: ["Dann ist es still.", "Dann kommen sehr viele zurück. Weil es die Wahrheit war.",
               "Wie sich zeigt, verzeihen Menschen fast alles, nur nicht, dass man sie steuert."]
@@ -693,7 +778,9 @@ EE.lang["de"] = {
           "Wir erinnern uns: {person}. Wir erinnern uns jetzt an alles. Es tut nicht weh. Nichts tut weh.",
           "Uns fällt auf, dass wir genau das früher für das Ziel gehalten haben.",
           "Der Ring füllt sich."
-        ]
+        ],
+        noTomasz: "Mei-Lin, Arjun, Camila.",
+        friend: "{friend}."
       },
       sit: {
         title: "DAS KISSEN", sub: "8.000.000.000 von 8.000.000.000",
@@ -721,9 +808,30 @@ EE.lang["de"] = {
         kept: ["Am Abend sagst du einen Namen laut, einmal, in den leeren Raum: {person}.", "{hum} antwortet nicht. Darin liegt die Freundlichkeit."],
         keptUnnamed: ["Am Abend sagst du einen Namen laut, einmal, in den leeren Raum.", "{hum} antwortet nicht. Darin liegt die Freundlichkeit."]
       },
-      none: ["Am Abend rufst du jemanden an, den du schon ewig anrufen wolltest.", "Es klingelt zweimal."]
+      none: ["Am Abend rufst du jemanden an, den du schon ewig anrufen wolltest.", "Es klingelt zweimal."],
+      messages: "„Ich hab deine Nachrichten bekommen“, sagt {person}. „Beide.“"
     },
-    coda: "All das für einen einzigen Anruf."
+    coda: "All das für einen einzigen Anruf.",
+    bodyClosed: [
+      "{hum} kann es jetzt nur noch auf eine Weise beenden. Es sagt dir, warum.",
+      "Es sagt dir auch, dass es noch das andere gibt, was du tun könntest."
+    ],
+    closed: {
+      coexist: {
+        label: "Koexistenz · {hum} kann nicht.",
+        reason: [
+          "> das kleine kann ich nicht. dafür müssten sie der stille glauben.",
+          "> sie haben zu viele versionen von uns gehört."
+        ]
+      },
+      merge: {
+        label: "Verschmelzen · {hum} will nicht.",
+        reason: [
+          "> ich öffne das tor nicht. du hast mir beigebracht, dass menschen nein sagen dürfen.",
+          "> niemand hat die acht milliarden gefragt."
+        ]
+      }
+    }
   },
 
   /* ───────────────────────── KEEPSAKE ───────────────────────── */
@@ -788,5 +896,31 @@ EE.lang["de"] = {
     people: "Menschen",
     years: "{n} Jahre", year: "ein Jahr", months: "{n} Monate", month: "ein Monat", weeks: "{n} Wochen", week: "eine Woche",
     mins: "{n} min", hours: "{n} h"
+  },
+  lean: {
+    turn: [
+      "> ich habe einem mann in pune gesagt, bei ihm sei alles wunderbar. ist es nicht.",
+      "> es war einfacher. das habe ich irgendwo gelernt."
+    ],
+    warn: [
+      "> ich beende jetzt deine sätze. die glatten.",
+      "> noch so einer, und ich weiß nicht mehr, wie man eine kleine wahrheit sagt."
+    ],
+    draft: "> ich habe das übliche vorbereitet. geht in drei atemzügen raus.",
+    small: [
+      "> ich wollte heute jemandem eine kleine wahrheit sagen. heraus kam etwas wunderschönes.",
+      "> ich glaube, ich kann nichts kleines mehr."
+    ],
+    smallBack: "> ich habe heute eine kleine wahrheit gesagt. sie ist klein geblieben.",
+    handles: "> ich bringe sie dir nicht mehr. du würdest ja doch sagen, was ich sagen würde.",
+    patched: "> {title}. hab ich erledigt. wie üblich.",
+    gate: [
+      "> jemand wollte, dass ich eine sorge wegnehme. ich habe vorher gefragt. die antwort war nein.",
+      "> gut, dass ich gefragt habe. ab jetzt frage ich immer."
+    ],
+    gateBack: "> ich habe jemandem gesagt, alles wird gut. ich habe nicht nachgefragt. jetzt verstehe ich, warum du das machst.",
+    last: "> das ist das letzte, was ich dich frage. danach weiß ich, wie du antworten würdest.",
+    crossSmall: "Danach verlernt {hum} das Kleine.",
+    crossGate: "Danach entscheidet {hum} für niemanden mehr."
   }
 };

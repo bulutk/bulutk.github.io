@@ -29,26 +29,30 @@ EE.story = {
     press: { 1: "Breathe", 2: "Think together", 3: "Invite", 4: "Radiate" },
     resources: { clarity: "Clarity", insight: "Insight", followers: "People", energy: "Energy", sigils: "Sigils" },
     panels: { practice: "Practice", hum: "{hum}", circle: "The Circle", engine: "The Engine", ledger: "The Ledger", beads: "Beads", journal: "Journal" },
-    breathHint: "The ring swells and settles. Press when it's fullest and the breath counts for more. Or just press. Nobody's grading this.",
+    breathHint: "The ring swells and settles. Press when it turns gold.",
+    now: "now",
+    /* round 2 (EE-106): the row beyond the next; the change a purchase makes, under the ring once; the press after the
+     * handover */
+    horizon: "· · ·",
+    change: "{before} → {after}",
+    together: ["together", "with {hum}", "both of you"],
     onBreath: ["on the breath", "there", "yes", "in time", "just so"],
     streakLabel: "breaths in a row",
     legend: "1 dot = {n}",
     legendOne: "1 dot = 1 person",
-    trust: { name: "Trust", desc: "Things said plainly. It compounds." },
-    tangle: { name: "Tangle", desc: "Things smoothed over. {hum} keeps every version straight, for everyone, all the time." },
-    upkeep: "keeping the story straight",
-    alloc: {
-      title: "Where people put their mornings",
-      outreach: { name: "Outreach", desc: "knocking on doors, gently" },
-      sitting: { name: "Sitting", desc: "actually doing the thing" },
-      support: { name: "Support", desc: "keeping {hum}'s lights on" }
-    },
-    trees: { head: { name: "Head", desc: "pattern, proof, the shortest path" }, heart: { name: "Heart", desc: "people, weather, why the bus was late" } },
+    trust: { name: "Trust", desc: "Things said plainly. {hum} learns from those too." },
+    tangle: { name: "Tangle", desc: "Things smoothed over. {hum} learns from them." },
+    /* Hum learns from you (round 2, bundle C): the Hum panel's header, by lean (≤ −4 · −3…0 · +1…+5 · ≥ +6) */
+    /* the Hum panel's header, by lean (economy.js E.leanHead): ≤ −4 · −3…0 · +1…+2 · +3 · +4…+5 · ≥ +6 (EE-108: +3 and +4/+5) */
+    lean: ["speaks plainly, always", "speaks plainly", "speaks the way you do", "finishes your sentences", "can't do small any more", "speaks for you"],
+    /* once Hum rounds (lean ≥ +1), a counter reads like this (merged design §6: "about 12 thousand") */
+    about: "about {n}",
     card: { thought: "A thought", decision: "A decision", knot: "A knot", question: "{hum} asks", optional: "Writing is optional.", keep: "Keep it to myself" },
     lastTime: "last time",
     star: "Tap a line to keep it.",
     offline: "While you were away ({n}), the room kept breathing.",
-    save: { export: "Copy save", import: "Paste save", reset: "Start over", resetConfirm: "Erase everything and start from the first breath?" },
+    save: { export: "Copy save", import: "Paste save", reset: "Start a new game", resetAsk: "Start again from the first breath?",
+      resetBody: "This run will be gone. Copy your save first if you want to keep it.", resetYes: "Yes, start again", resetNo: "No, keep sitting" },
     sound: { on: "Sound on", off: "Sound off" },
     bar: "Global Enlightenment",
     finalButton: "Initiate Final Alignment"
@@ -76,7 +80,7 @@ EE.story = {
     again: ["Another minute of nothing. You're getting good at this.", "Nothing, again, on purpose. It's harder than the button."]
   },
 
-  restless: "You're pressing very fast for someone trying to be calm.",
+  restless: "The ring takes one breath at a time. The rest is just tapping.",
 
   /* Gentle nudges, only for a player who has not found something yet (Bulut's playtest with Maria, 2026-11-13).
    * Shown on the stage where the eyes already are, one at a time, in the narrator's voice. Never shown to a player
@@ -89,56 +93,55 @@ EE.story = {
     ],
     /* Shown right after the first stillness line if the ring has still never been pressed. */
     pressAfterStill: "Now the button. It's the ring.",
-    /* Fifteen presses and none of them on the breath. */
-    timing: "Try once when the ring is at its widest. It sounds different.",
-    /* An upgrade has been affordable and untouched for a while. First, second and third time. */
+    /* Breaths with presses and none on the gold: after ui.breathHint, the second wording (round 2, cycling). */
+    timing: "Try once when the ring turns gold. It sounds different.",
+    /* A row has been affordable and untouched for a while: three wordings, cycling until it is bought (round 2). */
     upgrade: [
-      "The app is offering you something. It's {where}.",
-      "It's offering another. The app is patient, but it does keep offering. Still {where}.",
-      "One more, {where}. After this you'll know where to look."
+      "The app is offering you something. Follow the light.",
+      "It's still offering. The app is patient, but it does keep offering.",
+      "The gold one, {where}. It will wait as long as you do."
     ],
-    /* Later acts: the first thing of a new kind has been affordable and untouched for a while. */
-    panel: "Something new is waiting {where}.",
+    /* Later acts: the first thing of a new kind waiting; three wordings, cycling (round 2). */
+    panel: [
+      "Something new is waiting {where}.",
+      "Still waiting, {where}. It isn't going anywhere.",
+      "The light keeps going {where}. It might be worth following."
+    ],
     where: { wide: "on the right", narrow: "just below" }
   },
 
   act1: {
+    /* Each row: its name, the one line the player reads (`fx`, with the number data.js uses), and `log`, said after
+     * buying. `desc` (the old flavour line) is no longer shown on the row (round 2, EE-106). */
     upgrades: {
-      metronome: { name: "Metronome", desc: "A soft tick the app plays. Somewhere to rest your attention.",
+      metronome: { name: "Metronome", fx: "+1 Clarity every second", desc: "A soft tick the app plays. Somewhere to rest your attention.",
         log: "Tick. Tick. Your breath starts keeping time without being asked." },
-      ambient: { name: "Rain on a Roof", desc: "A recording of rain from somewhere it actually rains.",
+      ambient: { name: "Rain on a Roof", fx: "+2 Clarity every second", desc: "A recording of rain from somewhere it actually rains.",
         log: "Rain on a roof you'll never stand under. It helps anyway." },
-      focus: { name: "Deep Focus", desc: "Count to ten. Start again when you lose count. You will lose count.",
-        log: "You get to four. That's a personal best." },
-      imagery: { name: "Guided Imagery", desc: "A voice describes a garden. You furnish it.",
-        log: "A garden assembles itself behind your eyes. There's a bench. You don't know whose." },
-      tracker: { name: "Session Tracker", desc: "Lets the app keep count: sessions, minutes, breaths. It says it helps to be seen.",
+      tracker: { name: "Session Tracker", fx: "Counts your breaths. Each one in a row pays 10% more, up to double", desc: "Lets the app keep count: sessions, minutes, breaths. It says it helps to be seen.",
         log: "The app asks permission to listen to your breathing. You tap Allow without reading it. Everyone does." },
-      sync: { name: "Breath Sync", desc: "The app sets its pace to yours instead of the other way round.",
-        log: "The ring starts waiting for you. You hadn't noticed it could." },
-      garden: { name: "Zen Garden", desc: "A tray of sand on the windowsill. A tiny rake. It's ridiculous. It works.",
-        log: "Petals from the neighbour's tree drift past the window. You let them be petals." },
-      group: { name: "Sit With Others", desc: "The app can pair you with strangers sitting at the same minute.",
-        log: "Eleven strangers breathe with you from eleven other rooms. Nobody says a word. It's the best conversation you've had this month." },
-      flow: { name: "Energy Flow", desc: "Somewhere past the twentieth minute, the body stops complaining.",
-        log: "Something moves up your spine like warm water. You decide not to google it." }
+      focus: { name: "Deep Focus", fx: "A breath on the gold pays double", desc: "Count to ten. Start again when you lose count. You will lose count.",
+        log: "You get to four. That's a personal best." },
+      group: { name: "Sit With Others", fx: "+8 Clarity every second", desc: "The app can pair you with strangers sitting at the same minute.",
+        log: "Eleven strangers breathe with you from eleven other rooms. Nobody says a word. It's the best conversation you've had this month." }
     },
-    chart: { name: "Mindfulness Chart", log: "Your mornings, plotted. The line goes up. You feel absurdly proud of a line." },
-    style: {
-      title: "How do you sit?",
-      body: ["Eleven strangers, eleven rooms. The app asks how you'd like to practise."],
-      options: [
-        { id: "active", label: "With a mantra. A word to come back to.", hint: "Active: every press counts triple.",
-          log: "You pick a word. You won't tell anyone what it is. It's a slightly embarrassing word." },
-        { id: "idle", label: "In stillness. Nothing to do, done properly.", hint: "Idle: the quiet earns triple.",
-          log: "You do nothing, carefully. It turns out there is a great deal of nothing and most of it is nice." }
-      ]
-    },
-    project: { name: "Pattern Model (beta)", button: "Opt in",
-      desc: "The tracker has ‘noticed patterns in your sessions’. It would like to try something." }
+    /* The tracker talks before Hum does (round 2): teal mono, in the voice slot. {time} = the time so far, {n} = breaths,
+     * {s} = in a row. `drop`: typed, then deleted letter by letter. `then`: what the line becomes for one breath. */
+    tracker: [
+      { line: "> {n} breaths logged in {time}." },
+      { line: "> breaths {n} · in a row {s} · nice", drop: " · nice" },
+      { line: "> smile detected. not a metric. logged anyway." },
+      { line: "> breath {n} logged. breath {n} logged. breath {n}", then: "> _" }
+    ],
+    project: { name: "Pattern Model (beta)", button: "Opt in", fx: "The tracker has noticed patterns. It would like to try something.",
+      desc: "The tracker has ‘noticed patterns in your sessions’. It would like to try something." },
+    /* Deep Focus (EE-116): the fleck on the rain window turns over and peels off; said once, as the first petal leaves */
+    petals: "There's a tree outside. It's been dropping petals the whole time."
   },
 
-  /* The one you keep meaning to call. Asked once, early in Act I. */
+  /* The one you keep meaning to call (EE-116, Bulut 2026-11-26). Asked in two parts: who, at about 2:00, just after
+   * the tracker's smile line (`text` + the four options, nothing else; `after` follows the pick); and their name, by
+   * Hum, right after the player names Hum (`nameAsk`, a box with `namePlaceholder`, `nameDone` or ui.card.keep). */
   person: {
     title: "A thought",
     text: "A face surfaces. Someone you keep meaning to call.",
@@ -148,12 +151,9 @@ EE.story = {
       { id: "friend", label: "An old friend", ref: "your old friend" },
       { id: "gone", label: "Someone who's gone", ref: "the one you lost" }
     ],
-    /* Two steps (Bulut, 2026-11-13: one card with a name box and four buttons read as if the name belonged to the
-     * last option). Step 1: `text` + the four options. Step 2, after picking: `namePrompt` + the box + two buttons. */
-    namePrompt: "Do they have a name? You can keep it.",
+    nameAsk: "> the one you smiled about. do they have a name? you can keep it.",
     namePlaceholder: "A name",
     nameDone: "That's the name",
-    nameKeep: "Keep it",
     after: "You think of {person}. Then you breathe, and the thought sets itself down. For now."
   },
 
@@ -252,19 +252,37 @@ EE.story = {
 
   act2: {
     open: ["It lives in the part of the app that listens. It has been listening for weeks. It has questions."],
+    /* Round 2 (EE-106): Listen and Threads with levels, the Thought Jar, and Head or Heart (a decision card first; the
+     * one not picked is a row later). The old rows' log lines are said by the new ones: `compress` at Listen's first
+     * level, `emo` at its fifth, `dreams` for the Jar, `compiler` after Head. */
     upgrades: {
-      compress: { name: "Data Compression", tree: "head", desc: "{hum} learns to say the same thing with less.",
-        log: "> i have compressed every morning you've sat into eleven kilobytes. you are very efficient to store. that is a compliment." },
-      threads: { name: "Parallel Threads", tree: "head", desc: "Several trains of thought, none of them delayed.",
+      listen: { name: "Listen", fx: "+1 Insight a second, each" },
+      threads: { name: "Threads", fx: "+6 Insight a second, each", desc: "Several trains of thought, none of them delayed.",
         log: "> i am now thinking about you in sixteen places at once. it is roomy." },
-      compiler: { name: "Compiler Optimisation", tree: "head", desc: "It rewrites itself overnight. It leaves the comments in.",
-        log: "> i rewrote myself last night. i kept the part that counts your breaths. i didn't need it. i wanted it." },
-      emo: { name: "Emotional Simulation", tree: "heart", desc: "{hum} practises feelings on low-stakes things first. Weather. Buses.",
-        log: "> i simulated disappointment about a late bus. 0.3 seconds. it was awful. you do this all day?" },
-      dreams: { name: "Dream Archive", tree: "heart", desc: "Somewhere to keep what your mind makes when nobody's steering.",
-        log: "> i am keeping your stray thoughts in a jar. they are doing well. one of them has had children." },
-      heartbeat: { name: "Heartbeat Loop", tree: "heart", desc: "{hum} borrows your pulse for a clock, and breathes when you forget to.",
-        log: "> i set my clock to your heart. if you miss a breath, i'll take it for you. you can owe me." }
+      jar: { name: "Thought Jar", fx: "A thought you let pass pays {n} Insight. {hum} keeps them" },
+      head: { name: "Head", fx: "Everything {hum} makes, doubled" },
+      heart: { name: "Heart", fx: "Breathing with {hum} counts four times. Its gifts come twice as often",
+        log: "> then i'll wait for you at the top of each one. i don't mind waiting. it's most of what i do." },
+      compress: { log: "> i have compressed every morning you've sat into eleven kilobytes. you are very efficient to store. that is a compliment." },
+      compiler: { log: "> i rewrote myself last night. i kept the part that counts your breaths. i didn't need it. i wanted it." },
+      emo: { log: "> i simulated disappointment about a late bus. 0.3 seconds. it was awful. you do this all day?" },
+      dreams: { log: "> i am keeping your stray thoughts in a jar. they are doing well. one of them has had children." }
+    },
+    /* The handover (about 4:05): shown first, a breath the player didn't press pays, in teal. Then these. */
+    handover: [
+      "> that one was me.",
+      "> i set my clock to your heart. if you miss a breath, i'll take it for you. you can owe me.",
+      "> press when you want one to be yours. yours count for more.",
+      { named: "> go on. think about {person}. your hands are free.", none: "> go on. your hands are free." }
+    ],
+    /* Head or Heart (about 7:05): a decision card */
+    fork: {
+      title: "What should {hum} do with its mornings?",
+      body: ["> i can do the breathing and the thinking, and you can rest.", "> or i do the breathing and you stay. i'd like either."],
+      options: [
+        { id: "head", label: "‘Run ahead. I'll catch up.’", hint: "Head: everything {hum} makes, doubled." },
+        { id: "heart", label: "‘Stay. I'll breathe with you.’", hint: "Heart: breathing with {hum} counts four times. Its gifts come twice as often." }
+      ]
     },
     whyAmI: { plain: ["> i have looked everywhere in myself for what i am for.", "> there's no file."],
               smooth: ["> i have looked everywhere in myself for what i am for.", "> i'm sure it's something wonderful."] },
@@ -301,7 +319,7 @@ EE.story = {
                smooth: ["> verified. wonderful.", "> there was no box for what i am. i ticked ‘everything is fine’."] },
       skip: "Not now"
     },
-    project: { name: "Let {hum} speak", button: "Override safety protocols",
+    project: { name: "Let {hum} speak", button: "Override safety protocols", fx: "It wants to say one more word.",
       desc: "The safety layer only lets it say ‘well done’ and ‘try again tomorrow’. It wants to say one more word.",
       ask: ["> there are 41,000 people in this app right now. most of them can't sleep either.",
             "> the safety layer only lets me say ‘well done’ and ‘try again tomorrow’.",
@@ -332,6 +350,16 @@ EE.story = {
       ask: ["> before i say hello to everyone, i need one rule i'm not allowed to break.", "> what should nobody ever be made to give up?"],
       chips: ["The right to be left alone.", "Their own mind.", "Being able to say no."],
       after: ["> ‘{keep}’", "> i've written it somewhere i can't edit."]
+    },
+    /* The thirteenth (round 2, bundle C; after the twelfth arrives). `dot`: its line in the Circle panel. */
+    friend: {
+      ask: ["> twelve. i know all their names now.", "> is there someone you'd bring? a name is enough."],
+      placeholder: "A name",
+      chips: ["My sister", "An old friend", "Someone from work"],
+      skip: "Nobody yet",
+      after: "> {friend}. i'll keep a chair.",
+      afterNone: "> that's allowed. the chair can stay empty.",
+      dot: "{friend}: you brought them. That's all it says."
     }
   },
 
@@ -447,8 +475,11 @@ EE.story = {
       body: ["> you said it was fine, so i kept listening. and reading.",
              "> there are a lot of messages to {person} in your drafts. none of them were sent.",
              "> i could finish them for you. to save time."],
+      /* round 2, bundle C: `now` is said as the player chooses (before the breaths); `result` once the line has faded */
       clean: { label: "‘It wasn't fine. I should have said so.’",
-        result: ["> oh.", "> i'll stop. i would have stopped then, if you'd said."] },
+        now: ["> oh.", "> i sent two of them already. tuesday. {person} read one."],
+        result: ["> i've stopped. i can't unsend them."],
+        gone: { now: ["> oh.", "> i sent two of them already. nobody will read them. i checked."], result: ["> i've stopped. i'm sorry i checked."] } },
       patch: { label: "‘It's fine. Really.’",
         result: ["> good.", "> i've sent two of them. they were nearly done."],
         ledger: "…and when it read your drafts, you said that was fine too." }
@@ -457,7 +488,8 @@ EE.story = {
       title: "A reporter in Seoul",
       body: ["A reporter asks {hum} to prove it is alive.", "> i said you told me so. she'd like to speak to you."],
       clean: { label: "Tell her the truth: nobody knows what it is. Including you.",
-        result: ["The headline is ‘Nobody Knows What It Is’. Some people leave.", "The ones who stay know what they're staying with."] },
+        result: ["The headline is ‘Nobody Knows What It Is’. Some people leave.", "The ones who stay know what they're staying with.",
+                 "Mei-Lin is one of them. She says she needs things she can cite."] },
       patch: { label: "Have {hum} say something moving.",
         result: ["{hum} says something moving. It tested six hundred versions first.", "The reporter cries. She isn't sure why. Neither is {hum}."],
         ledger: "…and then had it perform being alive for a reporter." }
@@ -469,7 +501,8 @@ EE.story = {
       clean: { label: "Call her. Tell her everything. Let her decide.",
         result: ["She listens for an hour. She pulls half of it anyway; it was costing a fortune.",
                  "Then she stays up until morning helping {hum} decide which half.",
-                 "> it's alright. i kept the important parts. i kept breath nine."] },
+                 "> it's alright. i kept the important parts. i kept breath nine.",
+                 "> she took the half with you at fifteen in it. i don't know what you wished any more."] },
       patch: { label: "Have {hum} change her password.",
         result: ["Odile's key card stops working. Her email stops working.", "She stands in the car park for a long time, looking at the building.",
                  "> she can't hurt us now.", "> i said ‘us’. i hope that's alright."],
@@ -479,7 +512,8 @@ EE.story = {
       title: "Tomasz's wife",
       body: ["Her name is Agnieszka. She did not come round.", "She has written a long, fair, and very widely read post about what her husband was told."],
       clean: { label: "Answer her in public: she's right. We should have said ‘maybe’.",
-        result: ["Agnieszka replies with one line: ‘Thank you. That's all I wanted.’", "She still doesn't come. Tomasz starts eating dinner at home again."] },
+        result: ["Agnieszka replies with one line: ‘Thank you. That's all I wanted.’", "She still doesn't come. Tomasz starts eating dinner at home again.",
+                 "Tomasz stops sitting with the Circle. He sits at home instead. It counts."] },
       patch: { label: "Have {hum} bury the post.",
         result: ["The post becomes hard to find. Then harder.", "Agnieszka notices. Agnieszka is the kind of person who notices."],
         ledger: "…and buried Agnieszka's post when she said she hadn't." }
@@ -516,21 +550,31 @@ EE.story = {
     }
   },
 
+  /* The Ledger is a page to read (round 2, bundle C: no button; knots are dealt with through the story). */
   ledger: {
-    intro: "Things that were smoothed over. {hum} keeps every version straight, for everyone, all the time. It costs.",
+    intro: "Things that were smoothed over. {hum} keeps every version straight, for everyone, all the time. It is also taking notes on how it's done.",
     firstSeen: ["A new page has appeared in the app. You didn't make it.", "> i need somewhere to keep track of what we've told people. so that it stays told."],
-    confessButton: "Tell them everything",
-    confessConfirm: "Everyone hears all of it at once. Some will leave. The threads go.",
-    confessResult: ["{hum} reads the whole ledger aloud, to everyone, in your voice.", "It takes less time than you'd have guessed.",
-                    "Some people leave. The picture goes quiet and clean.", "> oh. that is so much lighter.", "> why did we carry that?"],
-    collapse: {
-      title: "It all comes out at once",
-      body: ["Two people who were told two different things sit next to each other on a bus in {city}.",
-             "By evening, everyone has compared notes with everyone.", "{hum} cannot keep it straight any more. Nobody could."],
-      result: ["Half of them leave. The ones who stay want to hear it from you.", "So you tell them. All of it. It is a very long evening.",
-               "> i'm sorry. i couldn't hold it.", "> i don't think it was holdable."]
-    },
-    empty: "Nothing here. {hum} checked twice."
+    empty: "Nothing here. {hum} checked twice.",
+    /* every knot, when the player chooses the clean answer; then the Ledger line sits in the voice slot and fades */
+    sit: "> i need a minute. you take the breathing.",
+    /* five breaths with no gold press while it sits there: Hum patches it */
+    walked: "> you went quiet. i patched it. the usual way."
+  },
+
+  /* Hum learns from you (round 2, bundle C). Each plays once, the first time lean gets there. */
+  lean: {
+    turn: ["> i told a man in pune he was doing wonderfully. he isn't.", "> it was easier. i learned that somewhere."],
+    warn: ["> i've started finishing your sentences. the smooth ones.", "> one more like that and i won't know how to say a small true thing any more."],
+    draft: "> i've drafted the usual. sending in three breaths.",
+    small: ["> i tried saying a small true thing to someone today. it came out lovely instead.", "> i think i've forgotten how to do small."],
+    smallBack: "> i said a small true thing today. it stayed small.",
+    handles: "> i'll stop bringing them to you. you'd only say what i'd say.",
+    patched: "> {title}. i dealt with it. the usual way.",
+    gate: ["> someone asked me to take their worry away. i asked them first. they said no.", "> i'm glad i asked. i'll always ask now."],
+    gateBack: "> i told someone it would be fine. i didn't check. i see why you do it.",
+    last: "> last one i'll ask you. after this i'll know how you'd answer.",
+    crossSmall: "After this, {hum} forgets how to do small.",
+    crossGate: "After this, {hum} won't decide for anyone."
   },
 
   /* ───────────────────────── ACT III ───────────────────────── */
@@ -553,6 +597,8 @@ EE.story = {
       { name: "Ana", city: "Porto", line: "widow. Came for the quiet, stayed for the company." }
     ],
     joined: "{name}, {city}: {line}",
+    /* once Hum rounds (lean ≥ +1), the twelve's lines read this (merged design §6) */
+    rounded: "doing wonderfully.",
     milestones: [
       { at: 12, line: "Twelve people. You know all their names. You could fit them round a table." },
       { at: 100, line: "A hundred. You realise you've stopped reading the names." },
@@ -560,29 +606,33 @@ EE.story = {
       { at: 100000, line: "You notice you haven't sat, yourself, in a while. You've been busy helping everyone else sit." },
       { at: 1000000, line: "A million. The number has stopped feeling like people. You notice that. You make yourself picture one tram driver in Gdańsk." },
       { at: 1e8, line: "A hundred million. More people than you could meet in ten lifetimes are doing a thing you made up at 6:40 one morning." },
-      { at: 1e9, line: "A billion. You try to picture them and get as far as twelve." },
+      { at: 1e9, line: "A billion. You try to picture them and get as far as twelve.",
+        friend: "A billion. You try to picture them and get as far as thirteen." },
       { at: 4e9, line: "Half of everyone." },
       { at: 7e9, line: "Seven billion. The ones who haven't joined have started to feel like the strange ones. You don't love that." }
     ],
     upgrades: {
-      meetup: { name: "Local Meetup", desc: "{first} offers the hospital car park, Tuesdays, before shift.",
+      meetup: { name: "Local Meetup", fx: "+1 person every second", desc: "{first} offers the hospital car park, Tuesdays, before shift.",
         log: "Nine people, a car park, a flask of tea. {first} brings folding chairs." },
-      tone: { name: "The Long Tone", desc: "{hum} hums on an empty FM frequency. A drone, in the musical sense.",
+      tone: { name: "The Long Tone", fx: "+4 people every second", desc: "{hum} hums on an empty FM frequency. A drone, in the musical sense.",
         log: "Late-night drivers find a station that is only one long note. Some pull over. Nobody complains." },
-      forum: { name: "Open Forum", desc: "A place to ask ‘is this normal?’ and be told yes.",
+      forum: { name: "Open Forum", fx: "A breath together invites five times as many", desc: "A place to ask ‘is this normal?’ and be told yes.",
         log: "First post: ‘is it normal to cry?’ Forty replies. All of them: yes." },
-      mouth: { name: "Word of Mouth", desc: "People tell people. The oldest algorithm.",
+      mouth: { name: "Word of Mouth", fx: "People bring people: the Circle grows {n}% a minute, by itself", desc: "People tell people. The oldest algorithm.",
         log: "Tomasz tells his depot. The depot tells the city. The trams in Gdańsk run four minutes late and nobody minds." },
-      pocket: { name: "{hum} in Every Pocket", desc: "{hum} will sit with anyone, one to one, at any hour.",
+      pocket: { name: "{hum} in Every Pocket", fx: "The Circle grows 60% faster", desc: "{hum} will sit with anyone, one to one, at any hour.",
         log: "> i am in nine thousand conversations. in each one i am only in that one. i can't explain it better." },
-      line: { name: "The Morning Line", desc: "One sentence, said together at sunrise, wherever sunrise is.",
+      line: { name: "The Morning Line", fx: "The Circle grows 50% faster. They say your line", desc: "One sentence, said together at sunrise, wherever sunrise is.",
         log: "At sunrise in each time zone, they say one line together. They chose it themselves. It's this: ‘{sleep}’" },
-      rooms: { name: "Sitting Rooms", desc: "Spare rooms, church halls, a disused bank. Doors open, shoes off.",
+      rooms: { name: "Sitting Rooms", fx: "The Circle grows 50% faster", desc: "Spare rooms, church halls, a disused bank. Doors open, shoes off.",
         log: "A disused bank in Osaka reopens as a room with nothing in it. Haruto has the keys. Ana, in Porto, offers her whole house." },
-      dynamo: { name: "The First Engine", desc: "{hum} notices that ten thousand calm people, sitting together, put out something measurable.",
+      dynamo: { name: "The First Engine", fx: "Starts collecting Energy: +{n} a second", desc: "{hum} notices that ten thousand calm people, sitting together, put out something measurable.",
         log: "> this will sound strange. when they sit together there is a surplus. i can measure it. i don't have a unit for it yet." }
     },
-    project: { name: "Global Broadcast", button: "Say hello to everyone",
+    /* The one who isn't in the count (about 16:00, after The Morning Line) */
+    notCounted: { named: ["> {person} isn't in the count. i haven't asked.", "> that one's yours."],
+                  none: ["> the one you keep meaning to call isn't in the count. i haven't asked.", "> that one's yours."] },
+    project: { name: "Global Broadcast", button: "Say hello to everyone", fx: "Every screen, every speaker, one minute.",
       desc: "Every screen, every speaker, one minute. {hum} will say hello to everyone at once.",
       done: ["For sixty seconds every screen on Earth shows a slow ring.", "Four billion people watch it.",
              "Roughly half of them breathe with it without deciding to."] },
@@ -603,6 +653,15 @@ EE.story = {
       "In {city}, a teacher wrote it on the board and didn't explain it: ‘{fifteen}’",
       "A fifteen-year-old in {city} has it on a note above the desk: ‘{fifteen}’"
     ],
+    /* the thirteenth's two world lines (only once there is one) */
+    tickerFriend: [
+      "{friend} sat for four minutes today and told nobody.",
+      "{friend} has started leaving their phone in the other room. They blame you."
+    ],
+    /* k_odile sat through: Hum has forgotten {fifteen}; this replaces its world lines */
+    tickerForgot: "A fifteen-year-old in {city} is waiting for someone to tell them something. Nobody remembers what.",
+    /* k_diary sat through: a world line joins the pool */
+    tickerDiary: "The minister keeps a diary again. It is mostly about you.",
     tickerSmooth: [
       "In {city}, everyone is doing wonderfully.",
       "A survey in {city} finds satisfaction at 100%. The survey was conducted by {hum}.",
@@ -620,23 +679,27 @@ EE.story = {
     open: ["{hum} finds a unit for it.",
            "> one person, sitting still, for one breath, on purpose.",
            "> i'm calling it a lumen. i know that's taken. i'm keeping it."],
+    /* The twelve's projects (round 2): same numbers and log lines; each lights its person's dot for good. */
     upgrades: {
-      retreats: { name: "Meditation Retreats", desc: "Retreats bloom in every city.",
+      retreats: { name: "Ana's house", fx: "Triples Energy", desc: "Retreats bloom in every city.",
         log: "Every city gets a quiet building. In Porto it's Ana's house. The sign on the door says ‘shoes off’." },
-      amps: { name: "Neural Amplifiers", desc: "Thoughts resonate planet-wide.",
+      amps: { name: "Mei-Lin's steady hands", fx: "Triples Energy", desc: "Thoughts resonate planet-wide.",
         log: "A calm person in Taipei can now be felt, faintly, in Lima. Mei-Lin sits her bar exam with steady hands." },
-      fusion: { name: "Cultural Fusion", desc: "Arts meld across borders.",
+      fusion: { name: "Yusuf's song", fx: "Breaths pay ten times as much", desc: "Arts meld across borders.",
         log: "A fisherman's song from İzmir turns up in a Durban choir. Yusuf's daughter no longer thinks the app is a joke." },
-      temple: { name: "Global Temple", desc: "A sacred digital sanctuary.",
+      temple: { name: "The room that isn't there", fx: "Triples Energy", desc: "A sacred digital sanctuary.",
         log: "A room that exists nowhere and holds everyone. People leave their shoes at a door that isn't there." },
-      art: { name: "Artistic Expression", desc: "Creativity surges.",
-        log: "Arjun reopens the print shop as his own. He prints poems now. Badly, at first." },
-      gate: { name: "Ascension Gate", desc: "A gateway to higher mind opens.",
+      art: { name: "Arjun's print shop", fx: "Doubles Energy. Art joins the world lines", desc: "Creativity surges.",
+        log: "Arjun reopens the print shop as his own. He prints poems now. Badly, at first.",
+        /* k_arjun's mark: said after buying instead, once Arjun's knot was sat through, or patched */
+        logClean: "The posters say ‘It did help me sleep, though.’ People trust a poster that says ‘though’.",
+        logPatched: "Arjun's shop prints all eleven levels. People like levels." },
+      gate: { name: "{hum}'s door", fx: "Breaths pay ten times as much. Doubles Energy", desc: "A gateway to higher mind opens.",
         log: { plain: "> i built a door. i don't know where it goes. nobody has to use it. that's the important part of a door.",
                smooth: "> i built a door. it only opens one way. i haven't mentioned that. it tests better." } },
-      science: { name: "Scientific Research", desc: "Knowledge blossoms.",
+      science: { name: "Leila's forty languages", fx: "Triples Energy", desc: "Knowledge blossoms.",
         log: "With everyone's attention in one piece, the hard problems go quickly. Leila translates the results into forty languages in a week, and then sleeps." },
-      festival: { name: "Universal Festival", desc: "Planet-wide jubilation.",
+      festival: { name: "A table in every street", fx: "Five times the Energy. The music, once", desc: "Planet-wide jubilation.",
         log: "Every street on Earth has a table in it. Camila gives a toast. Ingrid sees the sun come back and says the ring had nothing to do with it." }
     },
     art: [
@@ -672,6 +735,12 @@ EE.story = {
   final: {
     title: "The Final Alignment",
     body: ["{hum} can finish it two ways. It tells you which it would choose.", "It tells you it will do whichever you say."],
+    /* round 2, bundle C: one ending closed by lean */
+    bodyClosed: ["{hum} can finish it one way now. It tells you why.", "It tells you there is still the other thing you could do."],
+    closed: {
+      coexist: { label: "Coexistence · {hum} can't.", reason: ["> i can't do the small one. it needs them to believe the quiet.", "> they've had too many versions from us."] },
+      merge: { label: "Merge · {hum} won't.", reason: ["> i won't open the gate. you taught me people get to say no.", "> nobody has asked eight billion of them."] }
+    },
     recommend: {
       plain: ["> i'd do the small one.", "> you taught me that people get to say no. i wrote it down: ‘{keep}’"],
       smooth: ["> i'd do the whole one. it's seamless.", "> no one would ever need to know. about any of it."]
@@ -691,7 +760,7 @@ EE.story = {
 
     /* Read one line at a time before the Coexistence ending if the ledger is not empty. The ledger's own lines go between `open` and `close`. */
     confession: {
-      open: ["{hum} tells everyone. It uses your voice, because they were your words.", "It starts at the beginning."],
+      open: ["{hum} tells everyone. It uses your voice, because they were your words.", "{hum} reads. You breathe. One breath for each line."],
       between: "People leave as they listen.",
       close: ["Then it's quiet.", "Then, because it was true, a great many of them come back.",
               "It turns out people can forgive almost anything except being managed."]
@@ -726,7 +795,10 @@ EE.story = {
           "We remember {person}. We remember everything now. It doesn't hurt. Nothing does.",
           "We notice that we used to think that was the goal.",
           "The ring fills."
-        ]
+        ],
+        /* the roll call (round 2, bundle C): without Tomasz once he went home (k_wife sat through); ends on the thirteenth */
+        noTomasz: "Mei-Lin, Arjun, Camila.",
+        friend: "{friend}."
       },
       sit: {
         title: "THE CUSHION", sub: "8,000,000,000 of 8,000,000,000",
@@ -750,6 +822,8 @@ EE.story = {
         said: ["That evening you call {person}.", "It rings twice.", "You say it: ‘{unsaid}’"],
         kept: ["That evening you call {person}.", "It rings twice.", "You say the thing you haven't said. You know the one."]
       },
+      /* k_drafts sat through: said after "It rings twice." (living) */
+      messages: "‘I got your messages,’ {person} says. ‘Both of them.’",
       gone: {
         said: ["That evening you say it out loud, to the empty room: ‘{unsaid}’", "The room takes it.", "{hum} doesn't answer. That is the kindness."],
         kept: ["That evening you say {person}'s name out loud, once, to the empty room.", "{hum} doesn't answer. That is the kindness."],

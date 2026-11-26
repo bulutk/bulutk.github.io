@@ -92,7 +92,15 @@
     } else if (isObj(d)) merge(d, v, false);
   }
 
-  var I = EE.i18n = { code: 'en', failed: {} };
+  /* Lines new or changed in round 2 and not yet translated: every language shows them in English until a translation
+   * pass, and an older translation of a changed line is not used (it would teach the old rule). Each one shown in
+   * English is listed in EE.i18n.fallbacks; tools/check-lang.js reports them as awaiting translation. Empty since the
+   * round-2 translation pass (EE-109); add a path here when an English line changes and its translations wait. */
+  var PENDING = [
+  ]; /* pending-end */
+  function at(o, path) { var p = path.split('.'); for (var i = 0; i < p.length - 1; i++) { o = o && o[p[i]]; } return { o: o, k: p[p.length - 1] }; }
+
+  var I = EE.i18n = { code: 'en', failed: {}, fallbacks: [], pending: PENDING };
   /* A page that needs only the launch words (made.html) sets window.EE_LANG_LAUNCH_ONLY before this script. */
   var LAUNCH_ONLY = !!window.EE_LANG_LAUNCH_ONLY;
   function have(code) { return LAUNCH_ONLY ? !!EE.langLaunch[code] : !!EE.lang[code]; }
@@ -125,7 +133,14 @@
     if (code !== 'en' && have(code)) {
       merge(EE.story, EE.lang[code], true);
       merge(EE.story, EE.langLaunch[code], true);
-    } else code = 'en';
+      I.fallbacks = [];
+      PENDING.forEach(function (path) {
+        var en = at(EN, path), here = at(EE.story, path);
+        if (!en.o || !here.o) return;
+        here.o[here.k] = clone(en.o[en.k]);
+        I.fallbacks.push(code + ':' + path);
+      });
+    } else { code = 'en'; I.fallbacks = []; }
     I.code = code;
     EE.locale = code === 'en' ? null : BY[code].locale;
     var root = document.documentElement;

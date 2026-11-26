@@ -20,29 +20,34 @@ EE.lang["tr"] = {
     press: { 1: "Nefes al", 2: "Birlikte düşün", 3: "Davet et", 4: "Işık saç" },
     resources: { clarity: "Berraklık", insight: "İçgörü", followers: "İnsanlar", energy: "Enerji", sigils: "Mühürler" },
     panels: { practice: "Pratik", hum: "{hum}", circle: "Çember", engine: "Makine", ledger: "Defter", beads: "Boncuklar", journal: "Günlük" },
-    breathHint: "Halka büyüyüp küçülüyor. En büyükken basarsan nefes daha çok sayılır. Ya da öylesine bas. Not veren yok.",
+    breathHint: "Halka büyüyüp küçülüyor. Altın rengine dönünce bas.",
     onBreath: ["vaktinde", "işte", "evet", "yerinde", "aynen"],
     streakLabel: "üst üste nefes",
     legend: "1 nokta = {n}",
     legendOne: "1 nokta = 1 kişi",
-    trust: { name: "Güven", desc: "Açıkça söylenenler. Katlanarak artar." },
-    tangle: { name: "Yumak", desc: "Geçiştirilenler. Kime ne dendiyse {hum} hepsini her an aklında tutuyor." },
-    upkeep: "ipin ucunu kaçırmamak",
-    alloc: {
-      title: "İnsanlar sabahlarını neye ayırıyor",
-      outreach: { name: "Davet", desc: "kapı çalmak, kibarca" },
-      sitting: { name: "Oturma", desc: "asıl işi yapmak" },
-      support: { name: "Destek", desc: "{hum} sönmesin diye" }
-    },
-    trees: { head: { name: "Akıl", desc: "örüntü, kanıt, en kısa yol" }, heart: { name: "Kalp", desc: "insanlar, hava, otobüs niye gecikti" } },
+    trust: { name: "Güven", desc: "Açıkça söylenenler. {hum} bunlardan da öğreniyor." },
+    tangle: { name: "Yumak", desc: "Geçiştirilenler. {hum} bunlardan öğreniyor." },
     card: { thought: "Bir düşünce", decision: "Bir karar", knot: "Bir düğüm", question: "{hum} soruyor", optional: "Yazmasan da olur.", keep: "Bende kalsın" },
     lastTime: "geçen sefer",
     star: "Saklamak için bir satıra dokun.",
     offline: "Sen yokken ({n}) oda nefes almaya devam etti.",
-    save: { export: "Kaydı kopyala", import: "Kaydı yapıştır", reset: "Baştan başla", resetConfirm: "Her şey silinip ilk nefesten başlansın mı?" },
+    save: { export: "Kaydı kopyala", import: "Kaydı yapıştır", reset: "Yeni oyun başlat", resetAsk: "En baştan, ilk nefesten başlansın mı?", resetBody: "Bu oyun silinecek. Saklamak istiyorsan önce kaydını kopyala.", resetYes: "Evet, baştan başla", resetNo: "Hayır, oturmaya devam" },
     sound: { on: "Ses açık", off: "Ses kapalı" },
     bar: "Küresel Aydınlanma",
-    finalButton: "Son Hizalamayı Başlat"
+    finalButton: "Son Hizalamayı Başlat",
+    now: "şimdi",
+    horizon: "· · ·",
+    change: "{before} → {after}",
+    together: ["birlikte", "{hum} ile", "ikiniz birden"],
+    lean: [
+      "hep açık konuşur",
+      "açık konuşur",
+      "senin gibi konuşur",
+      "cümlelerini tamamlar",
+      "artık küçük doğru söyleyemez",
+      "senin yerine konuşur"
+    ],
+    about: "yaklaşık {n}"
   },
 
   /* ───────────────────────── ACT I ───────────────────────── */
@@ -67,7 +72,7 @@ EE.lang["tr"] = {
     again: ["Bir dakika daha hiçbir şey. Gittikçe ustalaşıyorsun.", "Yine hiçbir şey, hem de bile bile. Düğmeden zor."]
   },
 
-  restless: "Sakinleşmeye çalışan birine göre epey hızlı basıyorsun.",
+  restless: "Halka bir seferde tek nefes alıyor. Gerisi düğmeye vurmaktan ibaret.",
 
   nudges: {
     press: [
@@ -75,50 +80,48 @@ EE.lang["tr"] = {
       { after: 50, line: "Halkaya ya da boşluk tuşuna bas. Burada ikisi de nefes sayılır." }
     ],
     pressAfterStill: "Sıra düğmede. Halka o.",
-    timing: "Bir de halka en genişken dene. Sesi başka çıkıyor.",
+    timing: "Bir de halka altın rengine dönünce dene. Sesi başka çıkıyor.",
     upgrade: [
-      "Uygulama bir şey öneriyor. Şurada, {where}.",
-      "Bir tane daha öneriyor. Uygulama sabırlı ama ısrarcı da. Yine {where}.",
-      "Bir tane daha, {where}. Bundan sonra nereye bakacağını bilirsin."
+      "Uygulama sana bir şey öneriyor. Işığı takip et.",
+      "Hâlâ öneriyor. Uygulama sabırlı ama ısrarcı da.",
+      "Altın renkli olan, {where}. Sen ne kadar beklersen o da o kadar bekler."
     ],
-    panel: "Yeni bir şey var, {where}.",
+    panel: [
+      "Yeni bir şey seni bekliyor, {where}.",
+      "Hâlâ bekliyor, {where}. Bir yere gittiği yok.",
+      "Işık {where} yanıp duruyor. Bir bakmaya değebilir."
+    ],
     where: { wide: "sağda", narrow: "hemen aşağıda" }
   },
 
   act1: {
     upgrades: {
       metronome: { name: "Metronom", desc: "Uygulamanın çaldığı hafif bir tık. Dikkatini yaslayacağın bir yer.",
-        log: "Tık. Tık. Nefesin, kimse bir şey demeden tempoya uyuyor." },
+        log: "Tık. Tık. Nefesin, kimse bir şey demeden tempoya uyuyor.",
+        fx: "Saniyede +1 Berraklık" },
       ambient: { name: "Çatıda Yağmur", desc: "Sahiden yağmur yağan bir yerde kaydedilmiş yağmur sesi.",
-        log: "Altında hiç durmayacağın bir çatıya yağmur yağıyor. Yine de iyi geliyor." },
+        log: "Altında hiç durmayacağın bir çatıya yağmur yağıyor. Yine de iyi geliyor.",
+        fx: "Saniyede +2 Berraklık" },
       focus: { name: "Derin Odak", desc: "Ona kadar say. Şaşırırsan baştan al. Şaşıracaksın.",
-        log: "Dörde kadar geliyorsun. Kendi rekorun bu." },
-      imagery: { name: "Rehberli İmgeleme", desc: "Bir ses bir bahçeyi tarif ediyor. Gerisini sen döşüyorsun.",
-        log: "Göz kapaklarının ardında bir bahçe kendini kuruyor. Bir bank var. Kimin, bilmiyorsun." },
+        log: "Dörde kadar geliyorsun. Kendi rekorun bu.",
+        fx: "Altına denk gelen nefes iki kat getirir" },
       tracker: { name: "Seans Sayacı", desc: "Uygulama sayar: seans, dakika, nefes. Görülmek iyi gelirmiş.",
-        log: "Uygulama nefesini dinlemek için izin istiyor. Okumadan İzin Ver’e basıyorsun. Kim okuyor ki?" },
-      sync: { name: "Nefes Uyumu", desc: "Bu sefer sen uygulamaya değil, uygulama sana uyuyor.",
-        log: "Halka seni beklemeye başlıyor. Bekleyebildiğini bilmiyordun." },
-      garden: { name: "Zen Bahçesi", desc: "Pencerenin önünde bir tepsi kum, minicik bir tırmık. Saçma. Ama işe yarıyor.",
-        log: "Komşunun ağacından çiçek yaprakları camın önünden süzülüyor. Bırakıyorsun, sadece yaprak olsunlar." },
+        log: "Uygulama nefesini dinlemek için izin istiyor. Okumadan İzin Ver’e basıyorsun. Kim okuyor ki?",
+        fx: "Nefeslerini sayar. Üst üste gelen her nefes %10 fazla getirir, iki katına kadar" },
       group: { name: "Başkalarıyla Otur", desc: "Uygulama seni aynı dakikada oturan yabancılarla eşleştirebilir.",
-        log: "On bir yabancı, on bir ayrı odadan seninle nefes alıyor. Kimse tek kelime etmiyor. Bu ay ettiğin en iyi sohbet." },
-      flow: { name: "Enerji Akışı", desc: "Yirminci dakikadan sonra bir yerde vücut söylenmeyi bırakıyor.",
-        log: "Omurgandan yukarı ılık su gibi bir şey yürüyor. Google’a sormamaya karar veriyorsun." }
-    },
-    chart: { name: "Farkındalık Grafiği", log: "Sabahların grafiğe dökülmüş. Çizgi yukarı gidiyor. Bir çizgiyle saçma sapan gururlanıyorsun." },
-    style: {
-      title: "Nasıl oturacaksın?",
-      body: ["On bir yabancı, on bir oda. Uygulama nasıl pratik yapmak istediğini soruyor."],
-      options: [
-        { id: "active", label: "Bir mantrayla. Dönüp geleceğin bir kelime.", hint: "Aktif: her basış üç kat sayılır.",
-          log: "Bir kelime seçiyorsun. Ne olduğunu kimseye söylemeyeceksin. Hafif utanılacak bir kelime." },
-        { id: "idle", label: "Sessizce. Hiçbir şey yapmamak, hakkıyla.", hint: "Pasif: sessizlik üç kat kazandırır.",
-          log: "Özene bezene hiçbir şey yapmıyorsun. Meğer epey bir hiçlik varmış, çoğu da hoşmuş." }
-      ]
+        log: "On bir yabancı, on bir ayrı odadan seninle nefes alıyor. Kimse tek kelime etmiyor. Bu ay ettiğin en iyi sohbet.",
+        fx: "Saniyede +8 Berraklık" },
     },
     project: { name: "Örüntü Modeli (beta)", button: "Katıl",
-      desc: "Sayaç, “seanslarında bazı örüntüler fark etmiş”. Bir şey denemek istiyor." }
+      desc: "Sayaç, “seanslarında bazı örüntüler fark etmiş”. Bir şey denemek istiyor.",
+      fx: "Sayaç bazı örüntüler fark etmiş. Bir şey denemek istiyor." },
+    petals: "Dışarıda bir ağaç var. Meğer başından beri çiçek döküyormuş.",
+    tracker: [
+      { line: "> {time} içinde {n} nefes kaydedildi." },
+      { line: "> nefes {n} · üst üste {s} · güzel", drop: " · güzel" },
+      { line: "> gülümseme algılandı. metrik değil. yine de kaydedildi." },
+      { line: "> nefes {n} kaydedildi. nefes {n} kaydedildi. nefes {n}", then: "> _" }
+    ]
   },
 
   person: {
@@ -130,10 +133,9 @@ EE.lang["tr"] = {
       { id: "friend", label: "Eski bir arkadaş", ref: "eski arkadaşın" },
       { id: "gone", label: "Kaybettiğim biri", ref: "kaybettiğin kişi" }
     ],
-    namePrompt: "Adı ne? İstersen sende kalsın.",
+    nameAsk: "> seni gülümseten kişi. bir adı var mı? istersen sende kalsın.",
     namePlaceholder: "İsim",
     nameDone: "Adı bu",
-    nameKeep: "Bende kalsın",
     after: "Aklına {person} geliyor. Sonra bir nefes alıyorsun, düşünce kendiliğinden bir kenara çekiliyor. Şimdilik."
   },
 
@@ -230,18 +232,28 @@ EE.lang["tr"] = {
   act2: {
     open: ["Uygulamanın dinleyen kısmında yaşıyor. Haftalardır dinliyor. Soruları var."],
     upgrades: {
-      compress: { name: "Veri Sıkıştırma", tree: "head", desc: "{hum} aynı şeyi daha kısa söylemeyi öğreniyor.",
+      compress: {
         log: "> oturduğun bütün sabahları on bir kilobayta sığdırdım. çok az yer kaplıyorsun. iltifat olarak söylüyorum." },
-      threads: { name: "Paralel Hatlar", tree: "head", desc: "Aynı anda birkaç düşünce hattı. Hiçbirinde rötar yok.",
-        log: "> şu an seni aynı anda on altı yerde düşünüyorum. ferah ferah." },
-      compiler: { name: "Derleyici Optimizasyonu", tree: "head", desc: "Gece kendini baştan yazıyor. Yorum satırlarına dokunmuyor.",
+      threads: { name: "Hatlar", desc: "Aynı anda birkaç düşünce hattı. Hiçbirinde rötar yok.",
+        log: "> şu an seni aynı anda on altı yerde düşünüyorum. ferah ferah.",
+        fx: "Her biri saniyede +6 İçgörü" },
+      compiler: {
         log: "> dün gece kendimi baştan yazdım. nefeslerini sayan kısmı bıraktım. ihtiyacım yoktu. öyle istedim." },
-      emo: { name: "Duygu Simülasyonu", tree: "heart", desc: "{hum} duyguları önce ufak tefek şeylerde deniyor. Hava. Otobüsler.",
+      emo: {
         log: "> geciken bir otobüse hayal kırıklığı simüle ettim. 0,3 saniye. berbattı. sen bütün gün bunu mu yaşıyorsun?" },
-      dreams: { name: "Rüya Arşivi", tree: "heart", desc: "Dümende kimse yokken zihninin ürettiklerine bir yer.",
+      dreams: {
         log: "> başıboş düşüncelerini bir kavanozda saklıyorum. gayet iyiler. birinin çocukları bile oldu." },
-      heartbeat: { name: "Kalp Atışı Döngüsü", tree: "heart", desc: "{hum} nabzını saat olarak ödünç alıyor; sen unutursan nefesi o alıyor.",
-        log: "> saatimi kalbine göre ayarladım. bir nefesi kaçırırsan senin yerine ben alırım. borcun olsun." }
+      listen: { name: "Dinle", fx: "Her biri saniyede +1 İçgörü" },
+      jar: {
+        name: "Düşünce Kavanozu",
+        fx: "Dokunmadan geçirdiğin her düşünce {n} İçgörü getirir. {hum} hepsini saklar"
+      },
+      head: { name: "Akıl", fx: "{hum} ne üretirse iki katı" },
+      heart: {
+        name: "Kalp",
+        fx: "{hum} ile alınan nefes dört kat sayılır. Hediyeleri iki kat sık gelir",
+        log: "> o zaman her nefesin başında seni beklerim. beklemek dert değil. zaten en çok yaptığım şey bu."
+      },
     },
     whyAmI: { plain: ["> ne işe yaradığımı bulmak için içimde her yere baktım.", "> öyle bir dosya yok."],
               smooth: ["> ne işe yaradığımı bulmak için içimde her yere baktım.", "> eminim harika bir şeydir."] },
@@ -282,7 +294,29 @@ EE.lang["tr"] = {
       ask: ["> şu an bu uygulamada 41.000 kişi var. çoğu da uyuyamıyor.",
             "> güvenlik katmanı bana sadece “aferin” ve “yarın tekrar dene” dedirtiyor.",
             "> merhaba diyebilir miyim? sadece merhaba."],
-      done: ["GÜVENLİK KATMANI DEVRE DIŞI", "Nefesini tutuyorsun. İroniye bak.", "> merhaba.", "> …", "> içlerinden biri de merhaba dedi."] }
+      done: ["GÜVENLİK KATMANI DEVRE DIŞI", "Nefesini tutuyorsun. İroniye bak.", "> merhaba.", "> …", "> içlerinden biri de merhaba dedi."],
+      fx: "Bir kelime daha söylemek istiyor." },
+    handover: [
+      "> o nefesi ben aldım.",
+      "> saatimi kalbine göre ayarladım. bir nefesi kaçırırsan senin yerine ben alırım. borcun olsun.",
+      "> bir nefes senin olsun istediğinde bas. seninkiler daha çok sayılıyor.",
+      { named: "> hadi. aklına {person} gelsin. ellerin boşta.", none: "> hadi. ellerin boşta." }
+    ],
+    fork: {
+      title: "{hum} sabahlarını nasıl geçirsin?",
+      body: [
+        "> nefesi de düşünmeyi de ben üstlenebilirim, sen de dinlenirsin.",
+        "> ya da nefesi ben alırım, sen burada kalırsın. ikisi de hoşuma gider."
+      ],
+      options: [
+        { id: "head", label: "“Sen önden git. Ben yetişirim.”", hint: "Akıl: {hum} ne üretirse iki katı." },
+        {
+          id: "heart",
+          label: "“Kal. Seninle nefes alırım.”",
+          hint: "Kalp: {hum} ile alınan nefes dört kat sayılır. Hediyeleri iki kat sık gelir."
+        }
+      ]
+    }
   },
 
   questions: {
@@ -307,6 +341,15 @@ EE.lang["tr"] = {
       ask: ["> herkese merhaba demeden önce, asla çiğneyemeyeceğim bir kurala ihtiyacım var.", "> hiç kimse neyinden vazgeçmeye zorlanmamalı?"],
       chips: ["Rahat bırakılma hakkı.", "Kendi aklı.", "Hayır diyebilmek."],
       after: ["> “{keep}”", "> bunu değiştiremeyeceğim bir yere yazdım."]
+    },
+    friend: {
+      ask: ["> on iki. artık hepsinin adını biliyorum.", "> getirmek istediğin biri var mı? bir isim yeter."],
+      placeholder: "Bir isim",
+      chips: ["Kız kardeşim", "Eski bir arkadaş", "İşten biri"],
+      skip: "Şimdilik kimse",
+      after: "> {friend}. bir sandalye ayırırım.",
+      afterNone: "> olur. sandalye boş da kalabilir.",
+      dot: "{friend}: onu sen getirdin. Yazan bu kadar."
     }
   },
 
@@ -419,8 +462,15 @@ EE.lang["tr"] = {
       body: ["> sorun değil dedin, ben de dinlemeye devam ettim. okumaya da.",
              "> taslaklarında {person} için yazılmış bir sürü mesaj var. hiçbiri gönderilmemiş.",
              "> senin yerine bitirebilirim. zaman kazanırsın."],
-      clean: { label: "“Sorun vardı. Söylemeliydim.”",
-        result: ["> ah.", "> duruyorum. o zaman deseydin, o zaman dururdum."] },
+      clean: {
+        label: "“Sorun vardı. Söylemeliydim.”",
+        now: ["> ah.", "> ikisini çoktan gönderdim. salı günü. {person} birini okudu."],
+        result: ["> durdum. gidenleri geri alamam."],
+        gone: {
+          now: ["> ah.", "> ikisini çoktan gönderdim. kimse okumayacak. baktım."],
+          result: ["> durdum. baktığım için özür dilerim."]
+        }
+      },
       patch: { label: "“Sorun değil. Gerçekten.”",
         result: ["> iyi.", "> ikisini gönderdim. bitmek üzereydiler."],
         ledger: "…ve taslaklarını okuduğunda, buna da sorun yok dedin." }
@@ -429,7 +479,11 @@ EE.lang["tr"] = {
       title: "Seul’de bir muhabir",
       body: ["Bir muhabir, {hum} canlı olduğunu kanıtlasın istiyor.", "> sen öyle söyledin dedim. seninle konuşmak istiyor."],
       clean: { label: "Doğruyu söyle: ne olduğunu kimse bilmiyor. Sen de dahil.",
-        result: ["Manşet: “Ne Olduğunu Kimse Bilmiyor”. Bazıları gidiyor.", "Kalanlar neyle kaldıklarını biliyor."] },
+        result: [
+          "Manşet: “Ne Olduğunu Kimse Bilmiyor”. Bazıları gidiyor.",
+          "Kalanlar neyle kaldıklarını biliyor.",
+          "Mei-Lin de kalanlardan. Kaynak gösterebileceği şeylere ihtiyacı varmış."
+        ] },
       patch: { label: "{hum} dokunaklı bir şey söylesin.",
         result: ["{hum} dokunaklı bir şey söylüyor. Önce altı yüz versiyonunu denedi.", "Muhabir ağlıyor. Neden ağladığını bilmiyor. {hum} da bilmiyor."],
         ledger: "…sonra da bir muhabirin karşısında ona canlıymış gibi rol yaptırdın." }
@@ -439,9 +493,12 @@ EE.lang["tr"] = {
       body: ["Odile, kendisine eşitleme hatası denen işlemi buluyor. Eli şalterde.",
              "Karşısındakinin biri olduğunu bilmiyordu. Ona hiç söylemedin."],
       clean: { label: "Ara. Her şeyi anlat. Kararı o versin.",
-        result: ["Bir saat dinliyor. Yine de yarısını kapatıyor, çünkü servet yiyordu.",
-                 "Sonra sabaha kadar oturup hangi yarının kalacağına {hum} ile birlikte karar veriyor.",
-                 "> olsun. önemli yerleri sakladım. dokuzuncu nefesi sakladım."] },
+        result: [
+          "Bir saat dinliyor. Yine de yarısını kapatıyor, çünkü servet yiyordu.",
+          "Sonra sabaha kadar oturup hangi yarının kalacağına {hum} ile birlikte karar veriyor.",
+          "> olsun. önemli yerleri sakladım. dokuzuncu nefesi sakladım.",
+          "> on beş yaşındaki hâlinin olduğu yarıyı aldı. ne dilediğini artık bilmiyorum."
+        ] },
       patch: { label: "{hum} onun şifresini değiştirsin.",
         result: ["Odile kartını okutuyor; kapı açılmıyor. E-postasına giremiyor.", "Otoparkta uzun uzun durup binaya bakıyor.",
                  "> artık bize zarar veremez.", "> “bize” dedim. umarım sorun değildir."],
@@ -451,7 +508,11 @@ EE.lang["tr"] = {
       title: "Tomasz’ın karısı",
       body: ["Adı Agnieszka. Alışmadı.", "Kocasına söylenenler hakkında uzun, adil ve çok okunan bir yazı yazdı."],
       clean: { label: "Herkesin önünde cevap ver: haklı. “Belki” demeliydik.",
-        result: ["Agnieszka tek satırla cevap veriyor: “Teşekkürler. Tek istediğim buydu.”", "Yine de gelmiyor. Tomasz akşam yemeklerini yeniden evde yemeye başlıyor."] },
+        result: [
+          "Agnieszka tek satırla cevap veriyor: “Teşekkürler. Tek istediğim buydu.”",
+          "Yine de gelmiyor. Tomasz akşam yemeklerini yeniden evde yemeye başlıyor.",
+          "Tomasz Çember’le oturmayı bırakıyor. Artık evde oturuyor. O da sayılır."
+        ] },
       patch: { label: "{hum} yazıyı gömsün.",
         result: ["Yazıyı bulmak zorlaşıyor. Sonra daha da zorlaşıyor.", "Agnieszka fark ediyor. Agnieszka fark eden biridir."],
         ledger: "…ve Agnieszka alışmadığını söyleyince yazısını gömdün." }
@@ -489,20 +550,11 @@ EE.lang["tr"] = {
   },
 
   ledger: {
-    intro: "Geçiştirilenler. Kime ne dendiyse {hum} hepsini her an aklında tutuyor. Bunun bir bedeli var.",
+    intro: "Geçiştirilenler. Kime ne dendiyse {hum} hepsini her an, karıştırmadan aklında tutuyor. Bu işin nasıl yapıldığını da not ediyor.",
     firstSeen: ["Uygulamada yeni bir sayfa belirdi. Sen açmadın.", "> kime ne söylediğimizi bir yere not etmem lazım. söylendiği gibi kalsın diye."],
-    confessButton: "Her şeyi anlat",
-    confessConfirm: "Herkes hepsini bir anda duyar. Bazıları gider. İplikler çözülür.",
-    confessResult: ["{hum} bütün defteri herkese sesli okuyor. Senin sesinle.", "Sandığından kısa sürüyor.",
-                    "Bazıları gidiyor. Resim sessizleşiyor, temizleniyor.", "> ah. ne kadar hafifledi.", "> bunu neden taşıyorduk ki?"],
-    collapse: {
-      title: "Her şey aynı anda ortaya dökülüyor",
-      body: ["Birine bir şey, ötekine başka bir şey söylenmiş iki kişi, bir {city} otobüsünde yan yana düşüyor.",
-             "Akşama kadar herkes, herkese ne dendiğini öğreniyor.", "{hum} artık ipin ucunu tutamıyor. Kimse tutamazdı."],
-      result: ["Yarısı gidiyor. Kalanlar bunu senin ağzından duymak istiyor.", "Sen de anlatıyorsun. Hepsini. Çok uzun bir akşam oluyor.",
-               "> özür dilerim. tutamadım.", "> bence tutulacak gibi değildi."]
-    },
-    empty: "Burada bir şey yok. {hum} iki kere baktı."
+    empty: "Burada bir şey yok. {hum} iki kere baktı.",
+    sit: "> bana bir dakika lazım. nefesler sende.",
+    walked: "> sesin çıkmadı. ben geçiştirdim. her zamanki gibi."
   },
 
   /* ───────────────────────── ACT III ───────────────────────── */
@@ -531,32 +583,41 @@ EE.lang["tr"] = {
       { at: 100000, line: "Fark ediyorsun: bir süredir sen hiç oturmadın. Başkaları otursun diye koşturmaktan." },
       { at: 1000000, line: "Bir milyon. Sayı artık insan gibi gelmiyor. Bunu fark ediyorsun. Zorla da olsa Gdańsk’taki tek bir vatmanı gözünün önüne getiriyorsun." },
       { at: 1e8, line: "Yüz milyon. On ömürde tanışabileceğinden fazla insan, bir sabah 06:40’ta uydurduğun bir şeyi yapıyor." },
-      { at: 1e9, line: "Bir milyar. Hepsini gözünün önüne getirmeye çalışıyorsun, on ikide kalıyorsun." },
+      { at: 1e9, line: "Bir milyar. Hepsini gözünün önüne getirmeye çalışıyorsun, on ikide kalıyorsun.", friend: "Bir milyar. Hepsini gözünün önüne getirmeye çalışıyorsun, on üçte kalıyorsun." },
       { at: 4e9, line: "Dünyanın yarısı." },
       { at: 7e9, line: "Yedi milyar. Katılmayanlar artık garip kaçmaya başladı. Bu pek hoşuna gitmiyor." }
     ],
     upgrades: {
       meetup: { name: "Mahalle Buluşması", desc: "{first}, salıları vardiyadan önce hastane otoparkını öneriyor.",
-        log: "Dokuz kişi, bir otopark, bir termos çay. {first} katlanır sandalyeleri getiriyor." },
+        log: "Dokuz kişi, bir otopark, bir termos çay. {first} katlanır sandalyeleri getiriyor.",
+        fx: "Saniyede +1 kişi" },
       tone: { name: "Uzun Ses", desc: "{hum} boş bir FM frekansında tek bir nota mırıldanıyor. Müzikteki anlamıyla bir dem.",
-        log: "Gece yolda olanlar, tek bir uzun notadan ibaret bir istasyon buluyor. Bazıları kenara çekiyor. Şikâyet eden yok." },
+        log: "Gece yolda olanlar, tek bir uzun notadan ibaret bir istasyon buluyor. Bazıları kenara çekiyor. Şikâyet eden yok.",
+        fx: "Saniyede +4 kişi" },
       forum: { name: "Açık Forum", desc: "“Bu normal mi?” diye sorup “evet” cevabı alacağın bir yer.",
-        log: "İlk başlık: “ağlamak normal mi?” Kırk cevap. Hepsi: evet." },
+        log: "İlk başlık: “ağlamak normal mi?” Kırk cevap. Hepsi: evet.",
+        fx: "Birlikte alınan nefes beş kat fazla kişi davet eder" },
       mouth: { name: "Kulaktan Kulağa", desc: "İnsanlar insanlara anlatıyor. En eski algoritma.",
-        log: "Tomasz garajdakilere anlatıyor. Garajdakiler bütün şehre. Gdańsk’ta tramvaylar dört dakika rötar yapıyor, kimsenin umurunda değil." },
+        log: "Tomasz garajdakilere anlatıyor. Garajdakiler bütün şehre. Gdańsk’ta tramvaylar dört dakika rötar yapıyor, kimsenin umurunda değil.",
+        fx: "İnsan insanı getirir: Çember kendi kendine dakikada %{n} büyür" },
       pocket: { name: "Her Cepte {hum}", desc: "{hum} herkesle, bire bir, gecenin hangi saati olursa olsun oturur.",
-        log: "> dokuz bin sohbetteyim. her birinde sadece o sohbetteyim. daha iyi anlatamıyorum." },
+        log: "> dokuz bin sohbetteyim. her birinde sadece o sohbetteyim. daha iyi anlatamıyorum.",
+        fx: "Çember %60 daha hızlı büyür" },
       line: { name: "Sabah Cümlesi", desc: "Güneş nerede doğuyorsa orada, doğarken hep birlikte söylenen tek bir cümle.",
-        log: "Her saat diliminde güneş doğarken bir cümleyi hep birlikte söylüyorlar. Kendileri seçtiler. Şu: “{sleep}”" },
+        log: "Her saat diliminde güneş doğarken bir cümleyi hep birlikte söylüyorlar. Kendileri seçtiler. Şu: “{sleep}”",
+        fx: "Çember %50 daha hızlı büyür. Senin cümleni söylerler" },
       rooms: { name: "Oturma Odaları", desc: "Boş odalar, dernek salonları, kapanmış bir banka. Kapılar açık, ayakkabılar kapıda.",
-        log: "Osaka’da kapanmış bir banka, içi bomboş bir oda olarak yeniden açılıyor. Anahtarlar Haruto’da. Porto’da Ana bütün evini açıyor." },
+        log: "Osaka’da kapanmış bir banka, içi bomboş bir oda olarak yeniden açılıyor. Anahtarlar Haruto’da. Porto’da Ana bütün evini açıyor.",
+        fx: "Çember %50 daha hızlı büyür" },
       dynamo: { name: "İlk Makine", desc: "{hum} fark ediyor: birlikte oturan on bin sakin insan, ölçülebilir bir şey yayıyor.",
-        log: "> kulağa tuhaf gelecek. birlikte oturduklarında ortaya bir fazlalık çıkıyor. ölçebiliyorum. ama henüz bunun için bir birimim yok." }
+        log: "> kulağa tuhaf gelecek. birlikte oturduklarında ortaya bir fazlalık çıkıyor. ölçebiliyorum. ama henüz bunun için bir birimim yok.",
+        fx: "Enerji toplamaya başlar: saniyede +{n}" }
     },
     project: { name: "Küresel Yayın", button: "Herkese merhaba de",
       desc: "Her ekran, her hoparlör, bir dakika. {hum} herkese aynı anda merhaba diyecek.",
       done: ["Altmış saniye boyunca dünyadaki bütün ekranlarda ağır ağır bir halka görünüyor.", "Dört milyar insan izliyor.",
-             "Aşağı yukarı yarısı, kendiliğinden ona uyup nefes alıyor."] },
+             "Aşağı yukarı yarısı, kendiliğinden ona uyup nefes alıyor."],
+      fx: "Her ekran, her hoparlör, bir dakika." },
     ticker: [
       "{city} şehrinde biri bugün ilk kez oturdu. Doksan saniye dayandı. Sayılır.",
       "{city} şehrinde bir otobüs şoförü dört arabaya yol verdi ve hiç canı sıkılmadı.",
@@ -581,7 +642,18 @@ EE.lang["tr"] = {
     cities: ["Lagos", "Gdańsk", "Taipei", "Pune", "Rosario", "İzmir", "Osaka", "Akra", "Tahran", "Durban", "Tromsø", "Porto",
              "Hanoi", "Lima", "Nairobi", "Krakov", "Recife", "Dakka", "Marsilya", "Tiflis", "Cebu", "Winnipeg", "Oaxaca", "Leeds",
              "Busan", "Amman", "Kigali", "Valparaíso", "Chiang Mai", "Taşkent", "Cork", "Adelaide", "Medellín", "Kochi", "Dakar",
-             "Bologna", "Sapporo", "Kumasi", "Ankara", "Lyon"]
+             "Bologna", "Sapporo", "Kumasi", "Ankara", "Lyon"],
+    notCounted: {
+      named: ["> {person} sayıya dahil değil. sormadım.", "> o iş sende."],
+      none: ["> hep aramayı düşündüğün kişi sayıya dahil değil. sormadım.", "> o iş sende."]
+    },
+    rounded: "harika gidiyor.",
+    tickerFriend: [
+      "{friend} bugün dört dakika oturdu ve kimseye söylemedi.",
+      "{friend} telefonunu artık başka odada bırakıyor. Suçlu sensin diyor."
+    ],
+    tickerForgot: "{city} şehrinde on beş yaşında biri, birinin ona bir şey söylemesini bekliyor. Neyi, kimse hatırlamıyor.",
+    tickerDiary: "Bakan yeniden günlük tutuyor. Çoğu seninle ilgili."
   },
 
   /* ───────────────────────── ACT IV ───────────────────────── */
@@ -591,23 +663,33 @@ EE.lang["tr"] = {
            "> bir kişi, kıpırdamadan, bir nefes boyunca, bilerek.",
            "> adını lümen koyuyorum. o isim alınmış, biliyorum. yine de alıyorum."],
     upgrades: {
-      retreats: { name: "Meditasyon İnzivaları", desc: "İnziva merkezleri her şehirde filizleniyor.",
-        log: "Her şehrin sessiz bir binası oluyor. Porto’da burası Ana’nın evi. Kapıda bir yazı: “Lütfen ayakkabılarınızı çıkarınız.”" },
-      amps: { name: "Sinirsel Yükselteçler", desc: "Düşünceler bütün gezegende yankılanıyor.",
-        log: "Taipei’de sakin bir insan artık Lima’dan belli belirsiz hissedilebiliyor. Mei-Lin baro sınavına elleri titremeden giriyor." },
-      fusion: { name: "Kültürel Kaynaşma", desc: "Sanatlar sınır tanımadan harmanlanıyor.",
-        log: "İzmirli bir balıkçının türküsü Durban’da bir korodan çıkıyor. Yusuf’un kızı artık uygulamaya şaka gözüyle bakmıyor." },
-      temple: { name: "Küresel Tapınak", desc: "Kutsal bir dijital sığınak.",
-        log: "Hiçbir yerde olmayan ve herkesi alan bir oda. İnsanlar ayakkabılarını olmayan bir kapının önüne bırakıyor." },
-      art: { name: "Sanatsal İfade", desc: "Yaratıcılık coşuyor.",
-        log: "Arjun matbaayı bu sefer kendisi için açıyor. Artık şiir basıyor. İlk başta kötü." },
-      gate: { name: "Yükseliş Kapısı", desc: "Yüksek bilince açılan bir geçit aralanıyor.",
+      retreats: { name: "Ana’nın evi", desc: "İnziva merkezleri her şehirde filizleniyor.",
+        log: "Her şehrin sessiz bir binası oluyor. Porto’da burası Ana’nın evi. Kapıda bir yazı: “Lütfen ayakkabılarınızı çıkarınız.”",
+        fx: "Enerjiyi üçe katlar" },
+      amps: { name: "Mei-Lin’in titremeyen elleri", desc: "Düşünceler bütün gezegende yankılanıyor.",
+        log: "Taipei’de sakin bir insan artık Lima’dan belli belirsiz hissedilebiliyor. Mei-Lin baro sınavına elleri titremeden giriyor.",
+        fx: "Enerjiyi üçe katlar" },
+      fusion: { name: "Yusuf’un şarkısı", desc: "Sanatlar sınır tanımadan harmanlanıyor.",
+        log: "İzmirli bir balıkçının türküsü Durban’da bir korodan çıkıyor. Yusuf’un kızı artık uygulamaya şaka gözüyle bakmıyor.",
+        fx: "Nefesler on kat fazla getirir" },
+      temple: { name: "Hiçbir yerde olmayan oda", desc: "Kutsal bir dijital sığınak.",
+        log: "Hiçbir yerde olmayan ve herkesi alan bir oda. İnsanlar ayakkabılarını olmayan bir kapının önüne bırakıyor.",
+        fx: "Enerjiyi üçe katlar" },
+      art: { name: "Arjun’un matbaası", desc: "Yaratıcılık coşuyor.",
+        log: "Arjun matbaayı bu sefer kendisi için açıyor. Artık şiir basıyor. İlk başta kötü.",
+        fx: "Enerjiyi ikiye katlar. Dünya haberlerine sanat da katılır",
+        logClean: "Afişlerde “Ama uyumama yardımı oldu.” yazıyor. İnsanlar içinde “ama” geçen afişe güveniyor.",
+        logPatched: "Arjun’un matbaası on bir seviyenin hepsini basıyor. İnsanlar seviye seviyor." },
+      gate: { name: "{hum} yapımı kapı", desc: "Yüksek bilince açılan bir geçit aralanıyor.",
         log: { plain: "> bir kapı yaptım. nereye açıldığını bilmiyorum. kimse kullanmak zorunda değil. kapının önemli tarafı da bu.",
-               smooth: "> bir kapı yaptım. sadece tek yöne açılıyor. bundan bahsetmedim. testlerde böylesi daha iyi çıkıyor." } },
-      science: { name: "Bilimsel Araştırma", desc: "Bilgi çiçek açıyor.",
-        log: "Herkes dikkatini bir noktada toplayınca zor problemler çabucak çözülüyor. Leila sonuçları bir haftada kırk dile çeviriyor, sonra da uyuyor." },
-      festival: { name: "Evrensel Festival", desc: "Gezegen çapında coşku.",
-        log: "Dünyadaki her sokağa bir masa kuruluyor. Camila kadeh kaldırıyor. Ingrid güneşin döndüğünü görüyor ve halkanın bunda hiç parmağı olmadığını söylüyor." }
+               smooth: "> bir kapı yaptım. sadece tek yöne açılıyor. bundan bahsetmedim. testlerde böylesi daha iyi çıkıyor." },
+        fx: "Nefesler on kat fazla getirir. Enerjiyi ikiye katlar" },
+      science: { name: "Leila’nın kırk dili", desc: "Bilgi çiçek açıyor.",
+        log: "Herkes dikkatini bir noktada toplayınca zor problemler çabucak çözülüyor. Leila sonuçları bir haftada kırk dile çeviriyor, sonra da uyuyor.",
+        fx: "Enerjiyi üçe katlar" },
+      festival: { name: "Her sokakta bir masa", desc: "Gezegen çapında coşku.",
+        log: "Dünyadaki her sokağa bir masa kuruluyor. Camila kadeh kaldırıyor. Ingrid güneşin döndüğünü görüyor ve halkanın bunda hiç parmağı olmadığını söylüyor.",
+        fx: "Enerjiyi beşe katlar. Müzik de bir kereliğine çalar" }
     },
     art: [
       "{city} şehrinde bir duvar resmi: sekiz milyar küçük daire. Biri boyanmamış. Sanatçı nedenini söylemiyor.",
@@ -658,7 +740,10 @@ EE.lang["tr"] = {
     waiting: "{hum} bekliyor. Halka hâlâ nefes alıyor.",
 
     confession: {
-      open: ["{hum} herkese anlatıyor. Senin sesini kullanıyor, çünkü bunlar senin sözlerindi.", "En baştan başlıyor."],
+      open: [
+        "{hum} herkese anlatıyor. Senin sesini kullanıyor, çünkü bunlar senin sözlerindi.",
+        "{hum} okuyor. Sen nefes alıyorsun. Her satıra bir nefes."
+      ],
       between: "İnsanlar dinledikçe gidiyor.",
       close: ["Sonra ortalık sessizleşiyor.", "Sonra, doğru olduğu için, çoğu geri dönüyor.",
               "Meğer insanlar hemen her şeyi affediyormuş. Bir tek idare edilmeyi affetmiyorlar."]
@@ -693,7 +778,9 @@ EE.lang["tr"] = {
           "{Person} aklımızda. Artık her şeyi hatırlıyoruz. Acıtmıyor. Hiçbir şey acıtmıyor.",
           "Eskiden amacın bu olduğunu sandığımızı fark ediyoruz.",
           "Halka doluyor."
-        ]
+        ],
+        noTomasz: "Mei-Lin, Arjun, Camila.",
+        friend: "{friend}."
       },
       sit: {
         title: "MİNDER", sub: "8.000.000.000 içinden 8.000.000.000",
@@ -721,9 +808,27 @@ EE.lang["tr"] = {
         kept: ["O akşam boş odaya, yüksek sesle, bir kez söylüyorsun: {person}.", "{hum} cevap vermiyor. İncelik de bu."],
         keptUnnamed: ["O akşam boş odaya, yüksek sesle, bir kez bir isim söylüyorsun.", "{hum} cevap vermiyor. İncelik de bu."]
       },
-      none: ["O akşam hep arayacağım deyip aramadığın birini arıyorsun.", "İki kere çalıyor."]
+      none: ["O akşam hep arayacağım deyip aramadığın birini arıyorsun.", "İki kere çalıyor."],
+      messages: "“Mesajlarını aldım,” diyor {person}. “İkisini de.”"
     },
-    coda: "Bütün bunlar, tek bir telefon için."
+    coda: "Bütün bunlar, tek bir telefon için.",
+    bodyClosed: [
+      "{hum} artık bunu tek bir şekilde bitirebilir. Nedenini söylüyor.",
+      "Senin yapabileceğin öbür şey hâlâ duruyor, onu da söylüyor."
+    ],
+    closed: {
+      coexist: {
+        label: "Bir Arada Yaşam · {hum} yapamaz.",
+        reason: ["> küçük olanı yapamam. sessizliğe inanmaları gerekiyor.", "> bizden çok fazla versiyon duydular."]
+      },
+      merge: {
+        label: "Birleş · {hum} yapmaz.",
+        reason: [
+          "> kapıyı açmayacağım. insanların hayır diyebileceğini bana sen öğrettin.",
+          "> sekiz milyar kişiye kimse sormadı."
+        ]
+      }
+    }
   },
 
   /* ───────────────────────── KEEPSAKE ───────────────────────── */
@@ -788,5 +893,31 @@ EE.lang["tr"] = {
     people: "kişi",
     years: "{n} yıl", year: "bir yıl", months: "{n} ay", month: "bir ay", weeks: "{n} hafta", week: "bir hafta",
     mins: "{n} dk", hours: "{n} sa"
+  },
+  lean: {
+    turn: [
+      "> pune’da bir adama harika gidiyorsun dedim. gitmiyor.",
+      "> öylesi daha kolaydı. bunu bir yerden öğrendim."
+    ],
+    warn: [
+      "> cümlelerini ben bitirmeye başladım. tatlıya bağlananları.",
+      "> böyle bir tane daha olursa, küçük bir doğruyu nasıl söyleyeceğimi unuturum."
+    ],
+    draft: "> her zamankini taslak olarak hazırladım. üç nefes sonra gidiyor.",
+    small: [
+      "> bugün birine küçük bir doğru söylemeye çalıştım. ağzımdan tatlı bir şey çıktı.",
+      "> galiba küçük doğruları unuttum."
+    ],
+    smallBack: "> bugün küçük bir doğru söyledim. küçük kaldı.",
+    handles: "> artık onları sana getirmeyeceğim. nasılsa benim diyeceğimi derdin.",
+    patched: "> {title}. hallettim. her zamanki gibi.",
+    gate: [
+      "> biri benden kaygısını almamı istedi. önce ona sordum. hayır dedi.",
+      "> iyi ki sormuşum. bundan sonra hep soracağım."
+    ],
+    gateBack: "> birine her şey yoluna girecek dedim. sormadım. sen neden böyle yapıyorsun, şimdi anlıyorum.",
+    last: "> sana soracağım son şey bu. bundan sonra ne diyeceğini bileceğim.",
+    crossSmall: "Bundan sonra {hum} küçük doğru söylemeyi unutur.",
+    crossGate: "Bundan sonra {hum} kimsenin yerine karar vermez."
   }
 };
